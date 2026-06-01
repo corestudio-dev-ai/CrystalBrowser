@@ -7,28 +7,52 @@ namespace CrystalBrowser.App;
 public record Bookmark(string Title, string Url);
 
 /// <summary>
-/// Persistent bookmark list, stored as JSON under %AppData%\CrystalBrowser\bookmarks.json.
+/// Persistent bookmark list, stored per Crystal profile under that profile's data folder
+/// (so each profile keeps its own bookmarks, just like its history). Falls back to importing
+/// the pre-1.5.3 global bookmarks for the Default profile.
 /// </summary>
 public class BookmarkStore
 {
     private readonly string _path;
     public List<Bookmark> Items { get; private set; } = new();
 
-    public BookmarkStore()
+    public BookmarkStore(string profile)
     {
         var dir = Path.Combine(
-            Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), "CrystalBrowser");
+            Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData),
+            "CrystalBrowser", "Profiles", Sanitize(profile));
         Directory.CreateDirectory(dir);
         _path = Path.Combine(dir, "bookmarks.json");
-        Load();
+        Load(profile);
     }
 
-    private void Load()
+    private static string Sanitize(string name)
+    {
+        var safe = new string(name.Select(c => char.IsLetterOrDigit(c) ? c : '_').ToArray());
+        return string.IsNullOrEmpty(safe) ? "Default" : safe;
+    }
+
+    private void Load(string profile)
     {
         try
         {
             if (File.Exists(_path))
+            {
                 Items = JsonSerializer.Deserialize<List<Bookmark>>(File.ReadAllText(_path)) ?? new();
+                return;
+            }
+            // One-time import of the old global bookmarks into the Default profile.
+            if (string.Equals(profile, "Default", StringComparison.OrdinalIgnoreCase))
+            {
+                var legacy = Path.Combine(
+                    Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData),
+                    "CrystalBrowser", "bookmarks.json");
+                if (File.Exists(legacy))
+                {
+                    Items = JsonSerializer.Deserialize<List<Bookmark>>(File.ReadAllText(legacy)) ?? new();
+                    Save();
+                }
+            }
         }
         catch { Items = new(); }
     }

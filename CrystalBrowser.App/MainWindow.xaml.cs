@@ -32,7 +32,7 @@ public partial class MainWindow : Window
     // Normal windows browse inside the active Crystal profile's isolated data folder.
     private readonly string? _profileDataDir;
 
-    private readonly BookmarkStore _bookmarks = new();
+    private readonly BookmarkStore _bookmarks;
     private readonly SystemMonitor _monitor = new();
     private readonly DispatcherTimer _statsTimer = new() { Interval = TimeSpan.FromSeconds(1) };
 
@@ -57,6 +57,9 @@ public partial class MainWindow : Window
     {
         InitializeComponent();
         _incognito = tor;
+        ProfileStore.EnsureActive(); // profiles are the storage unit — guarantee a valid one
+        // Bookmarks and history both live in the active profile (cemented in 1.5.3).
+        _bookmarks = new BookmarkStore(SettingsStore.Current.ActiveProfile);
         ApplyTheme(SettingsStore.Current.Theme);
         ApplyAccent(SettingsStore.Current.Accent);
         if (_incognito)

@@ -53,6 +53,21 @@ public static class ProfileStore
         return true;
     }
 
+    /// <summary>
+    /// Make sure the active profile actually exists; if it was renamed/removed, fall back to
+    /// Default (creating it if needed). Cements profiles as the always-present storage unit.
+    /// </summary>
+    public static void EnsureActive()
+    {
+        if (!Items.Any(p => p == "Default")) { Items.Insert(0, "Default"); Save(); }
+        var active = SettingsStore.Current.ActiveProfile;
+        if (!Items.Any(p => string.Equals(p, active, StringComparison.OrdinalIgnoreCase)))
+        {
+            SettingsStore.Current.ActiveProfile = "Default";
+            SettingsStore.Save();
+        }
+    }
+
     /// <summary>The isolated WebView2 user-data folder for a profile.</summary>
     public static string DataDir(string name)
     {

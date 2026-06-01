@@ -23,8 +23,9 @@ web with **WebView2** (embedded Chromium).
   (with a fluid neon light that trails your cursor) in Settings.
 - **Functional Settings** — appearance (accent colour, tab layout), an "On startup" choice
   (New Tab page or a specific page), and an in-app update check that downloads and installs.
-- **Crystal profiles** — separate named profiles, each with its own isolated cookies, logins
-  and history; switch between them from Settings.
+- **Crystal profiles** — profiles are the unit that stores your browsing: each named profile
+  keeps its own isolated history, cookies, logins and bookmarks. Switch between them from
+  Settings.
 - **Built-in ad blocker** — **uBlock Origin Lite** (MV3) is bundled and loaded on startup, so
   ads and trackers are blocked by default.
 - **Incognito windows** — an isolated, throwaway session that's wiped on close. (Tor still
