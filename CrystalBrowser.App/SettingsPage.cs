@@ -37,6 +37,12 @@ public static class SettingsPage
   .tag { color:#a9a6cf; font-size:15px; margin-top:4px; }
   .note { font-size:13px; color:#7e7ba6; margin-top:10px; }
   a { color:var(--accent2); }
+  .btn { background:var(--accent); color:#fff; border:0; border-radius:10px;
+    padding:10px 18px; font-size:14px; cursor:pointer; transition:.15s; }
+  .btn:hover { background:#6a5aff; }
+  .btn:disabled { opacity:.55; cursor:default; }
+  .upd { display:flex; align-items:center; gap:14px; margin-top:6px; }
+  .ust { font-size:13px; color:#9a97c4; }
 </style>
 </head>
 <body>
@@ -60,6 +66,17 @@ public static class SettingsPage
   </div>
 
   <div class="card">
+    <h2>Updates</h2>
+    <div class="row"><span class="k">Automatic checks</span><span class="v">Every 60 seconds</span></div>
+    <div class="upd">
+      <button id="chk" class="btn" onclick="checkUpdates()">Check for updates</button>
+      <span id="ust" class="ust"></span>
+    </div>
+    <div class="note">Crystal checks GitHub automatically while it's open and shows a banner
+      when a new version is ready. Use this button to check right now.</div>
+  </div>
+
+  <div class="card">
     <h2>Features</h2>
     <div class="row"><span class="k">Tabs</span><span class="v">Yes</span></div>
     <div class="row"><span class="k">Edit mode</span><span class="v">document.designMode toggle</span></div>
@@ -72,6 +89,26 @@ public static class SettingsPage
     Searches the live web via Google.</div>
   </div>
 </div>
+<script>
+  function checkUpdates(){
+    var b=document.getElementById('chk'), u=document.getElementById('ust');
+    if(window.chrome && window.chrome.webview){
+      b.disabled=true; u.textContent='Checking…';
+      window.chrome.webview.postMessage('check-updates');
+    } else {
+      u.textContent='Update checks are unavailable here.';
+    }
+  }
+  // Called from the host app with the result of a check.
+  window.crystalUpdateStatus=function(state,ver){
+    var b=document.getElementById('chk'), u=document.getElementById('ust');
+    if(state==='checking'){ u.textContent='Checking…'; return; }
+    b.disabled=false;
+    if(state==='available'){ u.textContent='Update available: '+ver+' — see the banner to install.'; }
+    else if(state==='current'){ u.textContent="You're on the latest version."; }
+    else { u.textContent=''; }
+  };
+</script>
 </body>
 </html>
 """;

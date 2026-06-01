@@ -38,6 +38,9 @@ public partial class MainWindow : Window
     private readonly DispatcherTimer _loadTimer = new() { Interval = TimeSpan.FromMilliseconds(120) };
     private double _loadPct;
 
+    // Polls GitHub Releases every 60s for a newer version; stops once one is found.
+    private readonly DispatcherTimer _updateTimer = new() { Interval = TimeSpan.FromSeconds(60) };
+
     // A URL to open on launch instead of the home page (set when Windows starts us as the
     // default browser and hands us a link to open).
     private readonly string? _initialUrl;
@@ -61,7 +64,8 @@ public partial class MainWindow : Window
         _statsTimer.Tick += (_, _) => UpdateSystemStats();
         _statsTimer.Start();
         _loadTimer.Tick += (_, _) => TickLoadProgress();
-        Closed += (_, _) => { _loadTimer.Stop(); _monitor.Dispose(); CleanupPrivateProfile(); };
+        _updateTimer.Tick += async (_, _) => await CheckForUpdatesAsync();
+        Closed += (_, _) => { _loadTimer.Stop(); _updateTimer.Stop(); _monitor.Dispose(); CleanupPrivateProfile(); };
         StateChanged += OnStateChanged;
         Loaded += (_, _) =>
         {
@@ -73,7 +77,8 @@ public partial class MainWindow : Window
                 AddNewTab(home: true);
             if (!_tor)
             {
-                _ = CheckForUpdatesAsync(); // only the normal window checks
+                _ = CheckForUpdatesAsync(); // first check immediately…
+                _updateTimer.Start();       // …then keep polling every 60s until one is found
                 ShowDefaultBrowserNag();    // Chrome-style "set me as default" banner
             }
         };
@@ -257,6 +262,14 @@ public partial class MainWindow : Window
         };
         core.NewWindowRequested += (_, e) => { e.Handled = true; AddNewTab(url: e.Uri); };
 
+        // Bridge for messages the offline pages send us (e.g. the Settings "Check for updates").
+        core.WebMessageReceived += async (_, e) =>
+        {
+            string msg;
+            try { msg = e.TryGetWebMessageAsString(); } catch { return; }
+            if (msg == "check-updates") await ManualCheckForUpdatesAsync(core);
+        };
+
         if (home || url == null)
             GoHome(tab);
         else
@@ -320,6 +333,27 @@ public partial class MainWindow : Window
         _pendingUpdate = info;
         UpdateText.Text = $"Crystal Browser {info.Version} is available — you have {Config.Version}.";
         UpdateBar.Visibility = Visibility.Visible;
+        _updateTimer.Stop(); // an update is available — no need to keep pinging GitHub
+    }
+
+    // Manual "Check for updates" from the Settings page. Reports the outcome back to the page.
+    private async Task ManualCheckForUpdatesAsync(CoreWebView2 core)
+    {
+        await core.ExecuteScriptAsync("window.crystalUpdateStatus && window.crystalUpdateStatus('checking')");
+        var info = await Updater.CheckAsync();
+        if (info != null)
+        {
+            _pendingUpdate = info;
+            UpdateText.Text = $"Crystal Browser {info.Version} is available — you have {Config.Version}.";
+            UpdateBar.Visibility = Visibility.Visible;
+            _updateTimer.Stop();
+            await core.ExecuteScriptAsync(
+                $"window.crystalUpdateStatus && window.crystalUpdateStatus('available','{info.Version}')");
+        }
+        else
+        {
+            await core.ExecuteScriptAsync("window.crystalUpdateStatus && window.crystalUpdateStatus('current')");
+        }
     }
 
     private async void BtnUpdateNow_Click(object sender, RoutedEventArgs e)
