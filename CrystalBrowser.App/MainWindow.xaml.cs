@@ -120,7 +120,8 @@ public partial class MainWindow : Window
         // WindowChrome maximizes edge-to-edge and clips; inset to the work area, and
         // swap the maximize glyph for a restore glyph.
         bool max = WindowState == WindowState.Maximized;
-        RootPadding.Margin = max ? new Thickness(7) : new Thickness(0);
+        // Inset the whole neon frame when maximized so its border stays on-screen.
+        FrameBorder.Margin = max ? new Thickness(7) : new Thickness(0);
         BtnMax.Content = max ? "" : ""; // restore : maximize (Segoe MDL2)
         BtnMax.ToolTip = max ? "Restore" : "Maximize";
     }
