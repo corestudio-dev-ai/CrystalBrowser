@@ -118,6 +118,8 @@ public static class SettingsPage
     b.disabled=false;
     if(state==='failed'){
       u.innerHTML='Automatic download failed — <a href="'+(page||'#')+'">open the release page</a> to update manually.';
+    } else if(state==='error'){
+      u.textContent="Couldn't reach the update server. Check your connection and try again.";
     } else if(state==='current'){
       u.textContent="You're on the latest version.";
     } else { u.textContent=''; }

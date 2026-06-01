@@ -39,7 +39,8 @@ public partial class MainWindow : Window
     private readonly DispatcherTimer _loadTimer = new() { Interval = TimeSpan.FromMilliseconds(120) };
     private double _loadPct;
 
-    // Polls GitHub Releases every 60s for a newer version; stops once one is found.
+    // Pings GitHub Releases every 60s and keeps pinging while checks fail (offline/not ready);
+    // stops entirely once it gets a definitive answer — either up to date or an update found.
     private readonly DispatcherTimer _updateTimer = new() { Interval = TimeSpan.FromSeconds(60) };
 
     // A URL to open on launch instead of the home page (set when Windows starts us as the
@@ -399,12 +400,21 @@ public partial class MainWindow : Window
 
     private async Task CheckForUpdatesAsync()
     {
-        var info = await Updater.CheckAsync();
-        if (info == null) return;
-        _pendingUpdate = info;
-        UpdateText.Text = $"Crystal Browser {info.Version} is available — you have {Config.Version}.";
-        UpdateBar.Visibility = Visibility.Visible;
-        _updateTimer.Stop(); // an update is available — no need to keep pinging GitHub
+        var result = await Updater.CheckAsync();
+        switch (result.Status)
+        {
+            case UpdateStatus.Available:
+                _pendingUpdate = result.Info!;
+                UpdateText.Text = $"Crystal Browser {result.Info!.Version} is available — you have {Config.Version}.";
+                UpdateBar.Visibility = Visibility.Visible;
+                _updateTimer.Stop(); // found it — stop pinging
+                break;
+            case UpdateStatus.UpToDate:
+                _updateTimer.Stop(); // already latest — stop pinging entirely until next launch
+                break;
+            case UpdateStatus.Failed:
+                break; // no answer (offline / not ready) — keep pinging constantly
+        }
     }
 
     // Manual "Check for updates" from the Settings page. Unlike the passive banner, this
@@ -412,9 +422,20 @@ public partial class MainWindow : Window
     private async Task ManualCheckForUpdatesAsync(CoreWebView2 core)
     {
         await ReportUpdate(core, "checking");
-        var info = await Updater.CheckAsync();
-        if (info == null) { await ReportUpdate(core, "current"); return; }
+        var result = await Updater.CheckAsync();
+        if (result.Status == UpdateStatus.UpToDate)
+        {
+            _updateTimer.Stop();             // definitively latest — stop pinging
+            await ReportUpdate(core, "current");
+            return;
+        }
+        if (result.Status == UpdateStatus.Failed)
+        {
+            await ReportUpdate(core, "error"); // couldn't reach GitHub — leave the poller running
+            return;
+        }
 
+        var info = result.Info!;
         _pendingUpdate = info;
         UpdateText.Text = $"Crystal Browser {info.Version} is available — you have {Config.Version}.";
         UpdateBar.Visibility = Visibility.Visible;

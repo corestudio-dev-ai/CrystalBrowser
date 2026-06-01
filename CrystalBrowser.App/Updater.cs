@@ -7,6 +7,21 @@ namespace CrystalBrowser.App;
 /// <summary>Details of an available update found on GitHub Releases.</summary>
 public record UpdateInfo(string Version, string DownloadUrl, string PageUrl);
 
+/// <summary>Outcome of an update check.</summary>
+public enum UpdateStatus
+{
+    /// <summary>The running version is the latest — no need to keep polling.</summary>
+    UpToDate,
+    /// <summary>A newer release with an installer is available.</summary>
+    Available,
+    /// <summary>The check itself didn't complete (offline, rate-limited, asset not ready) —
+    /// no definitive answer, so the caller should keep polling.</summary>
+    Failed,
+}
+
+/// <summary>Result of an update check: a status plus, when available, the update details.</summary>
+public record UpdateResult(UpdateStatus Status, UpdateInfo? Info);
+
 /// <summary>
 /// In-app updater. Checks the configured GitHub repo's latest Release, compares its tag to
 /// the running version, and (if newer) downloads the installer and launches it.
@@ -24,10 +39,15 @@ public static class Updater
         return c;
     }
 
-    /// <summary>Returns update details if a newer release exists, otherwise null.</summary>
-    public static async Task<UpdateInfo?> CheckAsync()
+    /// <summary>
+    /// Check GitHub for a newer release. Distinguishes "up to date" from "couldn't check" so
+    /// callers can stop polling once they have a definitive answer but keep retrying on failure.
+    /// </summary>
+    public static async Task<UpdateResult> CheckAsync()
     {
-        if (string.IsNullOrWhiteSpace(Config.UpdateRepo)) return null;
+        // Checks disabled — treat as a definitive "nothing to do" so polling stops.
+        if (string.IsNullOrWhiteSpace(Config.UpdateRepo))
+            return new UpdateResult(UpdateStatus.UpToDate, null);
 
         try
         {
@@ -37,7 +57,12 @@ public static class Updater
 
             var tag = root.GetProperty("tag_name").GetString() ?? "";
             var latest = ParseVersion(tag);
-            if (latest == null || latest <= ParseVersion(Config.Version)) return null;
+            if (latest == null)
+                return new UpdateResult(UpdateStatus.Failed, null); // unparseable tag — retry later
+
+            // We're already on (or ahead of) the latest release: definitive, stop polling.
+            if (latest <= ParseVersion(Config.Version))
+                return new UpdateResult(UpdateStatus.UpToDate, null);
 
             // Find the installer asset (an .exe).
             string? dl = null;
@@ -53,12 +78,17 @@ public static class Updater
                 }
 
             var page = root.GetProperty("html_url").GetString() ?? "";
-            if (dl == null) return null;
-            return new UpdateInfo(tag.TrimStart('v', 'V'), dl, page);
+            // Newer release exists but its installer isn't uploaded yet — keep polling.
+            if (dl == null)
+                return new UpdateResult(UpdateStatus.Failed, null);
+
+            return new UpdateResult(UpdateStatus.Available,
+                new UpdateInfo(tag.TrimStart('v', 'V'), dl, page));
         }
         catch
         {
-            return null; // offline, rate-limited, repo not set up yet — fail quietly
+            // Offline, rate-limited, etc. — no answer, so the caller should keep pinging.
+            return new UpdateResult(UpdateStatus.Failed, null);
         }
     }
 
