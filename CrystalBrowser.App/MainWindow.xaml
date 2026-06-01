@@ -12,6 +12,9 @@
     </shell:WindowChrome.WindowChrome>
     <Window.Resources>
 
+        <!-- Accent colour (themed live from Settings). -->
+        <SolidColorBrush x:Key="AccentBrush" Color="#7C6CFF"/>
+
         <!-- Window caption buttons (minimize / maximize / close) — fully neon-redesigned.
              Even at rest each button is a glowing, neon-tinted pill with a coloured glyph;
              hovering just intensifies its own hue (cyan / violet / pink). -->
@@ -234,12 +237,20 @@
                 <ColumnDefinition Width="Auto"/>
             </Grid.ColumnDefinitions>
 
-            <StackPanel Grid.Column="0" Grid.ColumnSpan="2" Orientation="Horizontal"
-                        VerticalAlignment="Center" Margin="12,0,0,0">
+            <StackPanel Grid.Column="0" Orientation="Horizontal"
+                        VerticalAlignment="Center" Margin="12,0,8,0">
                 <TextBlock Text="&#128142;" FontSize="15" VerticalAlignment="Center"
                            Margin="0,0,8,0" Foreground="#b39bff"/>
                 <TextBlock Text="Crystal" FontSize="13" FontWeight="SemiBold" Foreground="#e9e9ff"
                            VerticalAlignment="Center"/>
+            </StackPanel>
+
+            <!-- Horizontal tab strip (default layout) -->
+            <StackPanel x:Name="HorizontalTabBar" Grid.Column="1" Orientation="Horizontal"
+                        shell:WindowChrome.IsHitTestVisibleInChrome="True">
+                <StackPanel x:Name="HorizontalTabStrip" Orientation="Horizontal" VerticalAlignment="Bottom"/>
+                <Button Style="{StaticResource IconBtn}" Content="＋" VerticalAlignment="Bottom"
+                        Margin="2,0,0,4" Click="BtnNewTab_Click" ToolTip="New tab"/>
             </StackPanel>
 
             <!-- Column 2 is draggable caption space; holds the incognito-mode badge -->
@@ -276,7 +287,7 @@
                 </StackPanel>
 
                 <Border Grid.Column="1" Background="#0f0e22" CornerRadius="18" Margin="8,0" Padding="16,0"
-                        BorderBrush="#2c2a4d" BorderThickness="1">
+                        BorderBrush="{DynamicResource AccentBrush}" BorderThickness="1">
                     <Grid>
                         <Grid.ColumnDefinitions>
                             <ColumnDefinition Width="Auto"/>
@@ -286,7 +297,7 @@
                                    VerticalAlignment="Center" Margin="0,0,10,0" FontSize="13"/>
                         <TextBox x:Name="AddressBar" Grid.Column="1" VerticalAlignment="Center" Height="34"
                                  Background="Transparent" Foreground="#f0efff" BorderThickness="0"
-                                 FontSize="14" CaretBrush="#7c6cff" VerticalContentAlignment="Center"
+                                 FontSize="14" CaretBrush="{DynamicResource AccentBrush}" VerticalContentAlignment="Center"
                                  KeyDown="AddressBar_KeyDown"/>
                     </Grid>
                 </Border>
@@ -347,7 +358,7 @@
                            VerticalAlignment="Center" Text="A new version of Crystal Browser is available."/>
                 <StackPanel Grid.Column="2" Orientation="Horizontal">
                     <Button x:Name="BtnUpdateNow" Content="Update now" Click="BtnUpdateNow_Click"
-                            Foreground="#ffffff" Background="#7c6cff" BorderThickness="0" Cursor="Hand"
+                            Foreground="#ffffff" Background="{DynamicResource AccentBrush}" BorderThickness="0" Cursor="Hand"
                             Padding="14,5" FontSize="13" Margin="0,0,8,0"/>
                     <Button x:Name="BtnUpdateLater" Content="Later" Click="BtnUpdateLater_Click"
                             Style="{StaticResource IconBtn}" Width="60"/>
@@ -409,8 +420,8 @@
             </Grid.ColumnDefinitions>
 
             <!-- Vertical tab rail with a fluid neon light that trails the cursor. -->
-            <Border Grid.Column="0" Width="216" Background="#13122a"
-                    BorderBrush="#262445" BorderThickness="0,0,1,0"
+            <Border x:Name="TabSidebar" Grid.Column="0" Width="216" Background="#13122a"
+                    BorderBrush="#262445" BorderThickness="0,0,1,0" Visibility="Collapsed"
                     MouseMove="TabRail_MouseMove" MouseLeave="TabRail_MouseLeave">
                 <Grid ClipToBounds="True">
                     <!-- Cursor light (animated in code-behind) -->
@@ -436,13 +447,7 @@
                                 Click="BtnNewTab_Click" ToolTip="New tab"/>
                         <ScrollViewer VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled"
                                       Padding="6,2">
-                            <ItemsControl x:Name="TabHeaders">
-                                <ItemsControl.ItemsPanel>
-                                    <ItemsPanelTemplate>
-                                        <StackPanel Orientation="Vertical"/>
-                                    </ItemsPanelTemplate>
-                                </ItemsControl.ItemsPanel>
-                            </ItemsControl>
+                            <StackPanel x:Name="VerticalTabStrip" Orientation="Vertical"/>
                         </ScrollViewer>
                     </DockPanel>
                 </Grid>

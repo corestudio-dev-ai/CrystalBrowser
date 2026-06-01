@@ -1,4 +1,5 @@
 ﻿using System.IO;
+using System.Text.Json;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Input;
@@ -25,10 +26,11 @@ public partial class MainWindow : Window
     private CoreWebView2Environment? _env;
     private Task<CoreWebView2Environment>? _envTask;
 
-    // Private (Tor) mode: this window routes through the Tor SOCKS proxy, isolated.
-    private readonly bool _tor;
-    private readonly int _torPort;            // 0 = Tor not detected on this machine
-    private readonly string? _privateDataDir; // ephemeral profile folder for private windows
+    // Incognito mode: an isolated, throwaway WebView2 profile wiped on close.
+    private readonly bool _incognito;
+    private readonly string? _privateDataDir; // ephemeral profile folder for incognito windows
+    // Normal windows browse inside the active Crystal profile's isolated data folder.
+    private readonly string? _profileDataDir;
 
     private readonly BookmarkStore _bookmarks = new();
     private readonly SystemMonitor _monitor = new();
@@ -54,14 +56,21 @@ public partial class MainWindow : Window
     public MainWindow(bool tor)
     {
         InitializeComponent();
-        _tor = tor;
-        if (_tor)
+        _incognito = tor;
+        ApplyAccent(SettingsStore.Current.Accent);
+        if (_incognito)
         {
-            _torPort = TorManager.DetectPort();
             _privateDataDir = Path.Combine(Path.GetTempPath(), "CrystalBrowserPrivate", Guid.NewGuid().ToString("N"));
             Title = "Crystal Browser — Incognito";
             PrivateBadge.Visibility = Visibility.Visible;
             BtnPrivate.Visibility = Visibility.Collapsed; // no nested incognito windows
+        }
+        else
+        {
+            var profile = SettingsStore.Current.ActiveProfile;
+            _profileDataDir = ProfileStore.DataDir(profile);
+            if (!string.Equals(profile, "Default", StringComparison.OrdinalIgnoreCase))
+                Title = $"Crystal Browser — {profile}";
         }
         _statsTimer.Tick += (_, _) => UpdateSystemStats();
         _statsTimer.Start();
@@ -72,12 +81,16 @@ public partial class MainWindow : Window
         Loaded += (_, _) =>
         {
             FitToScreen();
+            ApplyTabLayout(SettingsStore.Current.TabLayout);
             RenderBookmarks();
+            var startupUrl = StartupTarget();
             if (!string.IsNullOrWhiteSpace(_initialUrl))
                 AddNewTab(url: _initialUrl);
+            else if (startupUrl != null)
+                AddNewTab(url: startupUrl);
             else
                 AddNewTab(home: true);
-            if (!_tor)
+            if (!_incognito)
             {
                 _ = CheckForUpdatesAsync(); // first check immediately…
                 _updateTimer.Start();       // …then keep polling every 60s until one is found
@@ -86,21 +99,25 @@ public partial class MainWindow : Window
         };
     }
 
+    // The page to open at launch per the "On startup" setting (normal windows only), or null.
+    private string? StartupTarget()
+    {
+        if (_incognito) return null;
+        var s = SettingsStore.Current;
+        if (s.Startup == "url" && !string.IsNullOrWhiteSpace(s.StartupUrl))
+            return s.StartupUrl;
+        return null;
+    }
+
     private void CleanupPrivateProfile()
     {
         if (_privateDataDir != null && Directory.Exists(_privateDataDir))
             try { Directory.Delete(_privateDataDir, recursive: true); } catch { }
     }
 
-    private async void BtnPrivate_Click(object sender, RoutedEventArgs e)
+    private void BtnPrivate_Click(object sender, RoutedEventArgs e)
     {
-        BtnPrivate.IsEnabled = false;
-        SetStatus("Starting Incognito… (first connection can take a moment)");
-        // Launch the bundled Tor and wait for its circuit before opening the window,
-        // so the incognito window detects the live SOCKS port on startup.
-        await TorManager.Instance.EnsureStartedAsync();
-        SetStatus("Ready");
-        BtnPrivate.IsEnabled = true;
+        // Incognito is now a standard isolated, throwaway session (no Tor routing).
         new MainWindow(tor: true).Show();
     }
 
@@ -187,15 +204,67 @@ public partial class MainWindow : Window
     private async Task<CoreWebView2Environment> CreateEnvironmentAsync()
     {
         var args = "--enable-features=WebContentsForceDark";
-        // Private windows tunnel through Tor's SOCKS proxy. Chromium resolves DNS remotely
-        // over SOCKS5, so hostnames go through Tor too (no DNS leak).
-        if (_tor && _torPort > 0)
-            args += $" --proxy-server=socks5://127.0.0.1:{_torPort}";
         var options = new CoreWebView2EnvironmentOptions { AdditionalBrowserArguments = args };
         options.AreBrowserExtensionsEnabled = true; // needed to load the bundled uBlock Origin Lite
-        // Private windows use an isolated, ephemeral profile folder; normal windows use the default.
-        _env = await CoreWebView2Environment.CreateAsync(null, _privateDataDir, options);
+        // Incognito windows use an isolated, ephemeral folder; normal windows use the active
+        // Crystal profile's folder so each profile's cookies/logins stay separate.
+        var dataDir = _incognito ? _privateDataDir : _profileDataDir;
+        _env = await CoreWebView2Environment.CreateAsync(null, dataDir, options);
         return _env;
+    }
+
+    // ----- Settings page bridge -------------------------------------------
+
+    private async void HandleSettingsMessage(string? type, JsonElement root, CoreWebView2 core)
+    {
+        var s = SettingsStore.Current;
+        switch (type)
+        {
+            case "getSettings":
+                await PushSettings(core);
+                break;
+            case "setTabLayout":
+                s.TabLayout = root.GetProperty("value").GetString() ?? "horizontal";
+                SettingsStore.Save();
+                ApplyTabLayout(s.TabLayout); // live
+                break;
+            case "setStartup":
+                s.Startup = root.GetProperty("mode").GetString() ?? "newtab";
+                if (root.TryGetProperty("url", out var u)) s.StartupUrl = u.GetString() ?? "";
+                SettingsStore.Save();
+                break;
+            case "setAccent":
+                s.Accent = root.GetProperty("value").GetString() ?? "#7C6CFF";
+                SettingsStore.Save();
+                ApplyAccent(s.Accent); // live
+                break;
+            case "addProfile":
+                ProfileStore.Add(root.GetProperty("name").GetString() ?? "");
+                await PushSettings(core);
+                break;
+            case "switchProfile":
+                s.ActiveProfile = root.GetProperty("name").GetString() ?? "Default";
+                SettingsStore.Save();
+                // Reopen in the chosen profile (its own isolated WebView2 data folder).
+                new MainWindow().Show();
+                Close();
+                break;
+        }
+    }
+
+    private static async Task PushSettings(CoreWebView2 core)
+    {
+        var s = SettingsStore.Current;
+        var payload = JsonSerializer.Serialize(new
+        {
+            tabLayout = s.TabLayout,
+            startup = s.Startup,
+            startupUrl = s.StartupUrl,
+            accent = s.Accent,
+            activeProfile = s.ActiveProfile,
+            profiles = ProfileStore.Items,
+        });
+        await core.ExecuteScriptAsync($"window.crystalSettings && window.crystalSettings({payload})");
     }
 
     // ----- Bundled uBlock Origin Lite -------------------------------------
@@ -249,24 +318,20 @@ public partial class MainWindow : Window
             Content = "✕", Style = (Style)FindResource("TabClose"),
             VerticalAlignment = VerticalAlignment.Center, Margin = new Thickness(6, 0, 0, 0)
         };
-        // Vertical tab row: title fills the width, close button pinned to the right.
-        var panel = new DockPanel { Margin = new Thickness(12, 8, 8, 8), LastChildFill = true };
+        // title fills, close button pinned to the right (works for both layouts).
+        var panel = new DockPanel { LastChildFill = true };
         DockPanel.SetDock(close, Dock.Right);
         panel.Children.Add(close);
         panel.Children.Add(title);
-        var header = new Border
-        {
-            CornerRadius = new CornerRadius(10), Cursor = Cursors.Hand,
-            HorizontalAlignment = HorizontalAlignment.Stretch,
-            Margin = new Thickness(0, 2, 0, 2), Child = panel
-        };
+        var header = new Border { Cursor = Cursors.Hand, Child = panel };
 
-        // Header lives inside the WindowChrome caption strip — make it clickable.
+        // Header can live inside the WindowChrome caption strip (horizontal) — make it clickable.
         WindowChrome.SetIsHitTestVisibleInChrome(header, true);
 
         var tab = new BrowserTab { View = web, Header = header, Title = title };
         _tabs.Add(tab);
-        TabHeaders.Items.Add(header);
+        StyleTabHeader(tab, SettingsStore.Current.TabLayout);
+        ActiveTabStrip.Children.Add(header);
 
         header.MouseLeftButtonUp += (_, _) => Activate(tab);
         close.Click += (s, e) => { e.Handled = true; CloseTab(tab); };
@@ -279,7 +344,7 @@ public partial class MainWindow : Window
     {
         int idx = _tabs.IndexOf(tab);
         _tabs.Remove(tab);
-        TabHeaders.Items.Remove(tab.Header);
+        (tab.Header.Parent as Panel)?.Children.Remove(tab.Header);
         BrowserHost.Children.Remove(tab.View);
         tab.View.Dispose();
 
@@ -302,6 +367,64 @@ public partial class MainWindow : Window
                 ? Brushes.White : new SolidColorBrush(Color.FromRgb(0xb9, 0xb7, 0xda));
         }
         SyncChrome();
+    }
+
+    // ----- Tab layout (horizontal default / vertical option) --------------
+
+    private Panel ActiveTabStrip =>
+        SettingsStore.Current.TabLayout == "vertical" ? VerticalTabStrip : HorizontalTabStrip;
+
+    // Style a tab header for the chosen layout: a compact top pill, or a full-width rail row.
+    private static void StyleTabHeader(BrowserTab tab, string layout)
+    {
+        var panel = (DockPanel)tab.Header.Child;
+        if (layout == "vertical")
+        {
+            tab.Header.CornerRadius = new CornerRadius(10);
+            tab.Header.HorizontalAlignment = HorizontalAlignment.Stretch;
+            tab.Header.Width = double.NaN;
+            tab.Header.Margin = new Thickness(0, 2, 0, 2);
+            panel.Margin = new Thickness(12, 8, 8, 8);
+            tab.Title.MaxWidth = double.PositiveInfinity;
+        }
+        else
+        {
+            tab.Header.CornerRadius = new CornerRadius(10, 10, 0, 0);
+            tab.Header.HorizontalAlignment = HorizontalAlignment.Left;
+            tab.Header.Width = double.NaN;
+            tab.Header.Margin = new Thickness(2, 4, 0, 0);
+            panel.Margin = new Thickness(12, 7, 6, 7);
+            tab.Title.MaxWidth = 150;
+        }
+    }
+
+    // Apply a layout: show the matching strip, hide the other, and move every header across.
+    private void ApplyTabLayout(string layout)
+    {
+        bool vertical = layout == "vertical";
+        TabSidebar.Visibility = vertical ? Visibility.Visible : Visibility.Collapsed;
+        HorizontalTabBar.Visibility = vertical ? Visibility.Collapsed : Visibility.Visible;
+
+        var target = vertical ? VerticalTabStrip : HorizontalTabStrip;
+        foreach (var t in _tabs)
+        {
+            (t.Header.Parent as Panel)?.Children.Remove(t.Header);
+            StyleTabHeader(t, layout);
+            target.Children.Add(t.Header);
+        }
+        if (_active != null) Activate(_active); // restore selected-tab highlight
+    }
+
+    // ----- Appearance (accent colour) -------------------------------------
+
+    private void ApplyAccent(string hex)
+    {
+        try
+        {
+            var color = (Color)ColorConverter.ConvertFromString(hex);
+            Resources["AccentBrush"] = new SolidColorBrush(color);
+        }
+        catch { /* invalid hex — keep the existing accent */ }
     }
 
     private async void InitWebView(BrowserTab tab, bool home, string? url)
@@ -339,7 +462,15 @@ public partial class MainWindow : Window
         {
             string msg;
             try { msg = e.TryGetWebMessageAsString(); } catch { return; }
-            if (msg == "check-updates") await ManualCheckForUpdatesAsync(core);
+            if (msg == "check-updates") { await ManualCheckForUpdatesAsync(core); return; }
+            // Everything else is a JSON settings message from the Settings page.
+            try
+            {
+                using var doc = JsonDocument.Parse(msg);
+                var type = doc.RootElement.GetProperty("type").GetString();
+                HandleSettingsMessage(type, doc.RootElement, core);
+            }
+            catch { /* not a settings message */ }
         };
 
         if (home || url == null)
@@ -354,11 +485,8 @@ public partial class MainWindow : Window
     {
         tab.IsHome = true;
         tab.Title.Text = "New Tab";
-        // Private windows: show the Tor-bundled private home (or, if Tor isn't reachable,
-        // explain how to start it). Normal windows get the regular home page.
-        var html = _tor
-            ? (_torPort == 0 ? PrivatePage.TorMissingHtml() : PrivatePage.PrivateHomeHtml())
-            : HomePage.Html();
+        // Incognito windows get the incognito home; normal windows get the regular home page.
+        var html = _incognito ? PrivatePage.PrivateHomeHtml() : HomePage.Html();
         tab.View.CoreWebView2?.NavigateToString(html);
         if (tab == _active) { AddressBar.Text = ""; AddressBar.Focus(); }
     }
@@ -507,7 +635,7 @@ public partial class MainWindow : Window
     // that a progress meter would just flicker.
     private void StartLoadProgress()
     {
-        if (!_tor) return;
+        if (!_incognito) return;
         _loadPct = 0;
         ApplyLoadPct();
         LoadBar.Visibility = Visibility.Visible;
@@ -524,7 +652,7 @@ public partial class MainWindow : Window
 
     private void FinishLoadProgress()
     {
-        if (!_tor) return;
+        if (!_incognito) return;
         _loadTimer.Stop();
         _loadPct = 100;
         ApplyLoadPct();
