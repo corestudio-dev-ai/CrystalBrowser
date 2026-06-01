@@ -19,8 +19,12 @@ web with **WebView2** (embedded Chromium).
 - **Forced dark mode on every page** — Chromium's auto-dark engine
   (`--enable-features=WebContentsForceDark`) plus a dark `prefers-color-scheme`, so even
   sites without a dark theme render dark.
-- **Private windows with bundled Tor** — Tor ships inside Crystal Browser (no separate
-  install), so every page in a private window is routed through the **Tor network** for
+- **Vertical tabs** — tabs live in a left-hand rail with a fluid neon light that trails your
+  cursor.
+- **Built-in ad blocker** — **uBlock Origin** is bundled and loaded on startup, so ads and
+  trackers are blocked by default.
+- **Incognito windows with bundled Tor** — Tor ships inside Crystal Browser (no separate
+  install), so every page in an Incognito window is routed through the **Tor network** for
   complete privacy: your real IP is never exposed and the throwaway profile is wiped on
   close. A live percentage bar shows load progress while pages travel the slower Tor route.
 - **Default-browser prompt** — a Chrome-style banner offers to set Crystal as your default

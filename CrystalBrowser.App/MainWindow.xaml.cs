@@ -3,6 +3,7 @@ using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Input;
 using System.Windows.Media;
+using System.Windows.Media.Animation;
 using System.Windows.Shell;
 using System.Windows.Threading;
 using Microsoft.Web.WebView2.Core;
@@ -57,9 +58,9 @@ public partial class MainWindow : Window
         {
             _torPort = TorManager.DetectPort();
             _privateDataDir = Path.Combine(Path.GetTempPath(), "CrystalBrowserPrivate", Guid.NewGuid().ToString("N"));
-            Title = "Crystal Browser — Private (Tor)";
+            Title = "Crystal Browser — Incognito";
             PrivateBadge.Visibility = Visibility.Visible;
-            BtnPrivate.Visibility = Visibility.Collapsed; // no nested private windows
+            BtnPrivate.Visibility = Visibility.Collapsed; // no nested incognito windows
         }
         _statsTimer.Tick += (_, _) => UpdateSystemStats();
         _statsTimer.Start();
@@ -93,13 +94,42 @@ public partial class MainWindow : Window
     private async void BtnPrivate_Click(object sender, RoutedEventArgs e)
     {
         BtnPrivate.IsEnabled = false;
-        SetStatus("Starting Tor… (first connection can take a moment)");
+        SetStatus("Starting Incognito… (first connection can take a moment)");
         // Launch the bundled Tor and wait for its circuit before opening the window,
-        // so the private window detects the live SOCKS port on startup.
+        // so the incognito window detects the live SOCKS port on startup.
         await TorManager.Instance.EnsureStartedAsync();
         SetStatus("Ready");
         BtnPrivate.IsEnabled = true;
         new MainWindow(tor: true).Show();
+    }
+
+    // ----- Vertical-tab cursor light (fluid trailing glow) ----------------
+
+    private bool _lightOn;
+
+    private void TabRail_MouseMove(object sender, MouseEventArgs e)
+    {
+        var p = e.GetPosition((IInputElement)sender);
+        var dur = TimeSpan.FromMilliseconds(280);
+        var ease = new QuadraticEase { EasingMode = EasingMode.EaseOut };
+        // Center the glow on the cursor and ease toward it for a fluid trailing feel.
+        CursorLightMove.BeginAnimation(TranslateTransform.XProperty,
+            new DoubleAnimation(p.X - CursorLight.Width / 2, dur) { EasingFunction = ease });
+        CursorLightMove.BeginAnimation(TranslateTransform.YProperty,
+            new DoubleAnimation(p.Y - CursorLight.Height / 2, dur) { EasingFunction = ease });
+        if (!_lightOn)
+        {
+            _lightOn = true;
+            CursorLight.BeginAnimation(OpacityProperty,
+                new DoubleAnimation(1, TimeSpan.FromMilliseconds(180)));
+        }
+    }
+
+    private void TabRail_MouseLeave(object sender, MouseEventArgs e)
+    {
+        _lightOn = false;
+        CursorLight.BeginAnimation(OpacityProperty,
+            new DoubleAnimation(0, TimeSpan.FromMilliseconds(320)));
     }
 
     // Ensure the window never launches larger than the available screen area,
@@ -161,9 +191,45 @@ public partial class MainWindow : Window
         if (_tor && _torPort > 0)
             args += $" --proxy-server=socks5://127.0.0.1:{_torPort}";
         var options = new CoreWebView2EnvironmentOptions { AdditionalBrowserArguments = args };
+        options.AreBrowserExtensionsEnabled = true; // needed to load the bundled uBlock Origin
         // Private windows use an isolated, ephemeral profile folder; normal windows use the default.
         _env = await CoreWebView2Environment.CreateAsync(null, _privateDataDir, options);
         return _env;
+    }
+
+    // ----- Bundled uBlock Origin ------------------------------------------
+
+    private bool _ublockLoaded;
+
+    /// <summary>Load the bundled uBlock Origin extension once per profile (best effort).</summary>
+    private async Task EnsureUBlockAsync(CoreWebView2 core)
+    {
+        if (_ublockLoaded) return;
+        _ublockLoaded = true;
+        try
+        {
+            var dir = LocateUBlock();
+            if (dir != null)
+                await core.Profile.AddBrowserExtensionAsync(dir);
+        }
+        catch
+        {
+            // Extension API unavailable (older WebView2) or load failed — browse without it.
+            _ublockLoaded = false;
+        }
+    }
+
+    // Find the shipped uBlock folder by walking up from the running binary: <root>\ublock\manifest.json
+    private static string? LocateUBlock()
+    {
+        var dir = new DirectoryInfo(AppContext.BaseDirectory);
+        while (dir != null)
+        {
+            var candidate = Path.Combine(dir.FullName, "ublock");
+            if (File.Exists(Path.Combine(candidate, "manifest.json"))) return candidate;
+            dir = dir.Parent;
+        }
+        return null;
     }
 
     private void AddNewTab(bool home = false, string? url = null)
@@ -175,20 +241,23 @@ public partial class MainWindow : Window
         {
             Text = "New Tab", Foreground = Brushes.White, FontSize = 13,
             VerticalAlignment = VerticalAlignment.Center,
-            MaxWidth = 150, TextTrimming = TextTrimming.CharacterEllipsis
+            TextTrimming = TextTrimming.CharacterEllipsis
         };
         var close = new Button
         {
             Content = "✕", Style = (Style)FindResource("TabClose"),
-            VerticalAlignment = VerticalAlignment.Center, Margin = new Thickness(8, 0, 0, 0)
+            VerticalAlignment = VerticalAlignment.Center, Margin = new Thickness(6, 0, 0, 0)
         };
-        var panel = new StackPanel { Orientation = Orientation.Horizontal, Margin = new Thickness(12, 7, 6, 7) };
-        panel.Children.Add(title);
+        // Vertical tab row: title fills the width, close button pinned to the right.
+        var panel = new DockPanel { Margin = new Thickness(12, 8, 8, 8), LastChildFill = true };
+        DockPanel.SetDock(close, Dock.Right);
         panel.Children.Add(close);
+        panel.Children.Add(title);
         var header = new Border
         {
-            CornerRadius = new CornerRadius(10, 10, 0, 0), Cursor = Cursors.Hand,
-            Margin = new Thickness(2, 4, 0, 0), Child = panel
+            CornerRadius = new CornerRadius(10), Cursor = Cursors.Hand,
+            HorizontalAlignment = HorizontalAlignment.Stretch,
+            Margin = new Thickness(0, 2, 0, 2), Child = panel
         };
 
         // Header lives inside the WindowChrome caption strip — make it clickable.
@@ -241,6 +310,8 @@ public partial class MainWindow : Window
         web.DefaultBackgroundColor = System.Drawing.Color.FromArgb(0xFF, 0x0E, 0x0D, 0x1C);
         await web.EnsureCoreWebView2Async(await GetEnvironmentAsync());
         var core = web.CoreWebView2;
+
+        await EnsureUBlockAsync(core); // load the bundled ad blocker once per profile
 
         // Tell sites we prefer dark (Google etc. honour this natively); Chromium's
         // auto-dark engine (enabled via the env flag) darkens the rest.
@@ -336,24 +407,36 @@ public partial class MainWindow : Window
         _updateTimer.Stop(); // an update is available — no need to keep pinging GitHub
     }
 
-    // Manual "Check for updates" from the Settings page. Reports the outcome back to the page.
+    // Manual "Check for updates" from the Settings page. Unlike the passive banner, this
+    // actively downloads the installer and launches it so the user doesn't have to hunt it down.
     private async Task ManualCheckForUpdatesAsync(CoreWebView2 core)
     {
-        await core.ExecuteScriptAsync("window.crystalUpdateStatus && window.crystalUpdateStatus('checking')");
+        await ReportUpdate(core, "checking");
         var info = await Updater.CheckAsync();
-        if (info != null)
-        {
-            _pendingUpdate = info;
-            UpdateText.Text = $"Crystal Browser {info.Version} is available — you have {Config.Version}.";
-            UpdateBar.Visibility = Visibility.Visible;
-            _updateTimer.Stop();
-            await core.ExecuteScriptAsync(
-                $"window.crystalUpdateStatus && window.crystalUpdateStatus('available','{info.Version}')");
-        }
+        if (info == null) { await ReportUpdate(core, "current"); return; }
+
+        _pendingUpdate = info;
+        UpdateText.Text = $"Crystal Browser {info.Version} is available — you have {Config.Version}.";
+        UpdateBar.Visibility = Visibility.Visible;
+        _updateTimer.Stop();
+
+        // Show the version + a direct link, then download the installer right away.
+        await ReportUpdate(core, "available", info.Version, info.PageUrl, info.DownloadUrl);
+        await ReportUpdate(core, "downloading", info.Version);
+        bool ok = await Updater.DownloadAndRunAsync(info);
+        if (ok)
+            Close(); // exit so the freshly-launched installer can replace files
         else
-        {
-            await core.ExecuteScriptAsync("window.crystalUpdateStatus && window.crystalUpdateStatus('current')");
-        }
+            await ReportUpdate(core, "failed", info.Version, info.PageUrl, info.DownloadUrl);
+    }
+
+    // Push an update status to the Settings page's crystalUpdateStatus(state, ver, page, dl) hook.
+    private static async Task ReportUpdate(CoreWebView2 core, string state,
+        string? version = null, string? pageUrl = null, string? downloadUrl = null)
+    {
+        static string J(string? s) => System.Text.Json.JsonSerializer.Serialize(s ?? "");
+        await core.ExecuteScriptAsync(
+            $"window.crystalUpdateStatus && window.crystalUpdateStatus({J(state)},{J(version)},{J(pageUrl)},{J(downloadUrl)})");
     }
 
     private async void BtnUpdateNow_Click(object sender, RoutedEventArgs e)

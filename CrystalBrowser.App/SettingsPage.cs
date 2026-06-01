@@ -78,7 +78,9 @@ public static class SettingsPage
 
   <div class="card">
     <h2>Features</h2>
-    <div class="row"><span class="k">Tabs</span><span class="v">Yes</span></div>
+    <div class="row"><span class="k">Tabs</span><span class="v">Vertical</span></div>
+    <div class="row"><span class="k">Ad blocker</span><span class="v">uBlock Origin (built-in)</span></div>
+    <div class="row"><span class="k">Incognito</span><span class="v">Tor network (bundled)</span></div>
     <div class="row"><span class="k">Edit mode</span><span class="v">document.designMode toggle</span></div>
     <div class="row"><span class="k">System monitor</span><span class="v">Live CPU &amp; RAM</span></div>
   </div>
@@ -100,13 +102,25 @@ public static class SettingsPage
     }
   }
   // Called from the host app with the result of a check.
-  window.crystalUpdateStatus=function(state,ver){
+  window.crystalUpdateStatus=function(state,ver,page,dl){
     var b=document.getElementById('chk'), u=document.getElementById('ust');
-    if(state==='checking'){ u.textContent='Checking…'; return; }
+    if(state==='checking'){ b.disabled=true; u.textContent='Checking…'; return; }
+    if(state==='available'){
+      b.disabled=true;
+      u.innerHTML='Update available: <b>'+ver+'</b> — <a href="'+(dl||page)+'">direct download link</a>';
+      return;
+    }
+    if(state==='downloading'){
+      b.disabled=true;
+      u.textContent='Downloading '+ver+'… the installer will open automatically.';
+      return;
+    }
     b.disabled=false;
-    if(state==='available'){ u.textContent='Update available: '+ver+' — see the banner to install.'; }
-    else if(state==='current'){ u.textContent="You're on the latest version."; }
-    else { u.textContent=''; }
+    if(state==='failed'){
+      u.innerHTML='Automatic download failed — <a href="'+(page||'#')+'">open the release page</a> to update manually.';
+    } else if(state==='current'){
+      u.textContent="You're on the latest version.";
+    } else { u.textContent=''; }
   };
 </script>
 </body>

@@ -15,4 +15,20 @@ third_party/tor/data/torrc-defaults
 Download from: https://www.torproject.org/download/tor/  (Windows x86_64 Expert Bundle)
 
 The app project copies this tree into the build output under `tor\`, where `TorManager`
-launches it for private (Tor) windows.
+launches it for Incognito (Tor) windows.
+
+## uBlock Origin (built-in ad blocker)
+
+The `ublock/` folder holds the unpacked uBlock Origin Chromium extension and is **not
+committed** (~16 MB). To restore it for a build, download the latest
+`uBlock0_*.chromium.zip` from the releases below and extract so the layout is:
+
+```
+third_party/ublock/manifest.json
+third_party/ublock/...   (the rest of the unpacked extension)
+```
+
+Download from: https://github.com/gorhill/uBlock/releases/latest  (the `*.chromium.zip` asset)
+
+The app project copies this tree into the build output under `ublock\`, and the browser
+loads it on startup via WebView2's extension API so ad/tracker blocking is on by default.

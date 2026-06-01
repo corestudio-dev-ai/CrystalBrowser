@@ -4,7 +4,7 @@ namespace CrystalBrowser.App;
 public static class PrivatePage
 {
     /// <summary>
-    /// Home / new-tab page for a private window when Tor is up. Reassures the user that the
+    /// Home / new-tab page for an Incognito window when Tor is up. Reassures the user that the
     /// Tor network is bundled and that everything in this window is routed through it.
     /// </summary>
     public static string PrivateHomeHtml() => """
@@ -13,7 +13,7 @@ public static class PrivatePage
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>Private (Tor) — Crystal</title>
+<title>Incognito — Crystal</title>
 <style>
   :root { color-scheme:dark; --accent:#b39bff; }
   * { box-sizing:border-box; margin:0; padding:0; }
@@ -48,9 +48,9 @@ public static class PrivatePage
 </head>
 <body>
   <div class="shield">🛡</div>
-  <h1>You're browsing <span>privately</span></h1>
+  <h1>You're browsing in <span>Incognito</span></h1>
   <p class="lead">The <b>Tor network is bundled right inside Crystal Browser</b> — nothing to
-     install. Every page in this window is routed through Tor, so your browsing stays
+     install. Every page in this Incognito window is routed through Tor, so your browsing stays
      completely private and your real IP address is never exposed to the sites you visit.</p>
 
   <form action="https://www.google.com/search" method="get">

@@ -12,11 +12,20 @@
     <PackageReference Include="Microsoft.Web.WebView2" Version="1.0.3967.48" />
   </ItemGroup>
 
-  <!-- Bundle the Tor Expert Bundle so private windows work with zero setup.
+  <!-- Bundle the Tor Expert Bundle so Incognito windows work with zero setup.
        Files land under <output>\tor\... and ship with publish. -->
   <ItemGroup>
     <Content Include="..\third_party\tor\**\*">
       <Link>tor\%(RecursiveDir)%(Filename)%(Extension)</Link>
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
+  </ItemGroup>
+
+  <!-- Bundle uBlock Origin so ad/tracker blocking is on by default.
+       Files land under <output>\ublock\... and ship with publish. -->
+  <ItemGroup>
+    <Content Include="..\third_party\ublock\**\*">
+      <Link>ublock\%(RecursiveDir)%(Filename)%(Extension)</Link>
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </Content>
   </ItemGroup>
