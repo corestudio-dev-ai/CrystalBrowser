@@ -9,7 +9,7 @@ public static class SettingsPage
 {
     public const string Version = Config.Version;
 
-    public static string Html() => $$"""
+    public static string Html(bool light = false) => $$"""
 <!doctype html>
 <html lang="en">
 <head>
@@ -68,6 +68,7 @@ public static class SettingsPage
   .pill { font-size:11px; color:#cdbcff; background:rgba(124,108,255,.22);
     padding:2px 9px; border-radius:9px; margin-left:8px; }
 </style>
+{{Theme.PageCss(light)}}
 </head>
 <body>
 <div class="wrap">
@@ -88,6 +89,13 @@ public static class SettingsPage
       <div class="seg" id="segTabs">
         <button data-v="horizontal" onclick="setTabs('horizontal')">Horizontal</button>
         <button data-v="vertical" onclick="setTabs('vertical')">Vertical</button>
+      </div>
+    </div>
+    <div class="row">
+      <div><div class="k">Theme</div><div class="sub">Dark or light interface.</div></div>
+      <div class="seg" id="segTheme">
+        <button data-v="dark" onclick="setTheme('dark')">Dark</button>
+        <button data-v="light" onclick="setTheme('light')">Light</button>
       </div>
     </div>
     <div class="row">
@@ -140,6 +148,7 @@ public static class SettingsPage
   function send(o){ if(window.chrome && window.chrome.webview) window.chrome.webview.postMessage(JSON.stringify(o)); }
 
   function setTabs(v){ send({type:'setTabLayout', value:v}); markTabs(v); }
+  function setTheme(v){ send({type:'setTheme', value:v}); markTheme(v); }
   function setAccent(v){ send({type:'setAccent', value:v}); markAccent(v);
     document.documentElement.style.setProperty('--accent', v); }
   function setStartup(){
@@ -155,6 +164,10 @@ public static class SettingsPage
 
   function markTabs(v){
     document.querySelectorAll('#segTabs button').forEach(function(b){
+      b.classList.toggle('on', b.dataset.v===v); });
+  }
+  function markTheme(v){
+    document.querySelectorAll('#segTheme button').forEach(function(b){
       b.classList.toggle('on', b.dataset.v===v); });
   }
   function markAccent(v){
@@ -174,6 +187,7 @@ public static class SettingsPage
   // Host pushes the current settings here.
   window.crystalSettings = function(s){
     markTabs(s.tabLayout);
+    markTheme(s.theme||'dark');
     markAccent(s.accent);
     document.documentElement.style.setProperty('--accent', s.accent);
     var r=document.querySelector('input[name=su][value="'+(s.startup||'newtab')+'"]'); if(r) r.checked=true;

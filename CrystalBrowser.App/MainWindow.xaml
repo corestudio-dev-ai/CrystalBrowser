@@ -3,7 +3,7 @@
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:shell="clr-namespace:System.Windows.Shell;assembly=PresentationFramework"
         Title="Crystal Browser" Height="700" Width="1024" MinHeight="420" MinWidth="640"
-        Background="#0e0d1c" WindowStartupLocation="CenterScreen"
+        Background="{DynamicResource WindowBg}" WindowStartupLocation="CenterScreen"
         UseLayoutRounding="True" TextOptions.TextFormattingMode="Display">
     <shell:WindowChrome.WindowChrome>
         <shell:WindowChrome CaptionHeight="40" CornerRadius="0"
@@ -14,6 +14,17 @@
 
         <!-- Accent colour (themed live from Settings). -->
         <SolidColorBrush x:Key="AccentBrush" Color="#7C6CFF"/>
+
+        <!-- Theme surfaces (dark defaults; swapped live by ApplyTheme). -->
+        <SolidColorBrush x:Key="WindowBg" Color="#0e0d1c"/>
+        <SolidColorBrush x:Key="ChromeBg" Color="#1b1933"/>
+        <SolidColorBrush x:Key="ChromeBg2" Color="#13122a"/>
+        <SolidColorBrush x:Key="SurfaceBg" Color="#0f0e22"/>
+        <SolidColorBrush x:Key="TextPrimary" Color="#f0efff"/>
+        <SolidColorBrush x:Key="TextMuted" Color="#7e7ba6"/>
+        <SolidColorBrush x:Key="TabTextActive" Color="#ffffff"/>
+        <SolidColorBrush x:Key="TabTextInactive" Color="#b9b7da"/>
+        <SolidColorBrush x:Key="TabActiveBg" Color="#1b1933"/>
 
         <!-- Window caption buttons (minimize / maximize / close) — fully neon-redesigned.
              Even at rest each button is a glowing, neon-tinted pill with a coloured glyph;
@@ -130,7 +141,7 @@
 
         <!-- Icon / nav button -->
         <Style TargetType="Button" x:Key="IconBtn">
-            <Setter Property="Foreground" Value="#cfceeb"/>
+            <Setter Property="Foreground" Value="{DynamicResource TextPrimary}"/>
             <Setter Property="Background" Value="Transparent"/>
             <Setter Property="Width" Value="34"/>
             <Setter Property="Height" Value="34"/>
@@ -189,7 +200,7 @@
     </Window.Resources>
 
     <!-- Neon rainbow window frame: a 2px animated multi-colour border around everything. -->
-    <Border x:Name="FrameBorder" BorderThickness="2" Background="#0e0d1c">
+    <Border x:Name="FrameBorder" BorderThickness="2" Background="{DynamicResource WindowBg}">
         <Border.BorderBrush>
             <LinearGradientBrush StartPoint="0,0" EndPoint="1,1" SpreadMethod="Repeat">
                 <LinearGradientBrush.RelativeTransform>
@@ -229,7 +240,7 @@
         </Grid.RowDefinitions>
 
         <!-- Title bar: logo + tabs (left), drag area, window controls (right) -->
-        <Grid Grid.Row="0" Background="#0e0d1c">
+        <Grid Grid.Row="0" Background="{DynamicResource WindowBg}">
             <Grid.ColumnDefinitions>
                 <ColumnDefinition Width="Auto"/>
                 <ColumnDefinition Width="Auto"/>
@@ -277,7 +288,7 @@
         </Grid>
 
         <!-- Toolbar -->
-        <Border Grid.Row="1" Background="#1b1933" Padding="8,7">
+        <Border Grid.Row="1" Background="{DynamicResource ChromeBg}" Padding="8,7">
             <Grid>
                 <Grid.ColumnDefinitions>
                     <ColumnDefinition Width="Auto"/>
@@ -292,7 +303,7 @@
                     <Button x:Name="BtnHome" Style="{StaticResource IconBtn}" Content="&#8962;" Click="BtnHome_Click" ToolTip="Home"/>
                 </StackPanel>
 
-                <Border Grid.Column="1" Background="#0f0e22" CornerRadius="18" Margin="8,0" Padding="16,0"
+                <Border Grid.Column="1" Background="{DynamicResource SurfaceBg}" CornerRadius="18" Margin="8,0" Padding="16,0"
                         BorderBrush="{DynamicResource AccentBrush}" BorderThickness="1">
                     <Grid>
                         <Grid.ColumnDefinitions>
@@ -302,7 +313,7 @@
                         <TextBlock Grid.Column="0" Text="&#xE721;" FontFamily="Segoe MDL2 Assets"
                                    Foreground="#6f6da0" VerticalAlignment="Center" Margin="0,0,10,0" FontSize="13"/>
                         <TextBox x:Name="AddressBar" Grid.Column="1" VerticalAlignment="Center" Height="34"
-                                 Background="Transparent" Foreground="#f0efff" BorderThickness="0"
+                                 Background="Transparent" Foreground="{DynamicResource TextPrimary}" BorderThickness="0"
                                  FontSize="14" CaretBrush="{DynamicResource AccentBrush}" VerticalContentAlignment="Center"
                                  KeyDown="AddressBar_KeyDown"/>
                     </Grid>
@@ -427,7 +438,7 @@
             </Grid.ColumnDefinitions>
 
             <!-- Vertical tab rail with a fluid neon light that trails the cursor. -->
-            <Border x:Name="TabSidebar" Grid.Column="0" Width="216" Background="#13122a"
+            <Border x:Name="TabSidebar" Grid.Column="0" Width="216" Background="{DynamicResource ChromeBg2}"
                     BorderBrush="#262445" BorderThickness="0,0,1,0" Visibility="Collapsed"
                     MouseMove="TabRail_MouseMove" MouseLeave="TabRail_MouseLeave">
                 <Grid ClipToBounds="True">
@@ -461,18 +472,18 @@
             </Border>
 
             <!-- Content host (single WebView swapped per active tab) -->
-            <Grid x:Name="BrowserHost" Grid.Column="1" Background="#0e0d1c"/>
+            <Grid x:Name="BrowserHost" Grid.Column="1" Background="{DynamicResource WindowBg}"/>
         </Grid>
 
         <!-- Status bar with live system monitor -->
-        <Border Grid.Row="7" Background="#13122a" Padding="12,4">
+        <Border Grid.Row="7" Background="{DynamicResource ChromeBg2}" Padding="12,4">
             <Grid>
                 <Grid.ColumnDefinitions>
                     <ColumnDefinition Width="*"/>
                     <ColumnDefinition Width="Auto"/>
                 </Grid.ColumnDefinitions>
 
-                <TextBlock x:Name="StatusText" Grid.Column="0" Foreground="#7e7ba6"
+                <TextBlock x:Name="StatusText" Grid.Column="0" Foreground="{DynamicResource TextMuted}"
                            FontSize="11" VerticalAlignment="Center" Text="Ready"/>
 
                 <StackPanel Grid.Column="1" Orientation="Horizontal" VerticalAlignment="Center">

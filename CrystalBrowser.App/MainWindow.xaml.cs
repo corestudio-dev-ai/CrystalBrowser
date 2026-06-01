@@ -57,6 +57,7 @@ public partial class MainWindow : Window
     {
         InitializeComponent();
         _incognito = tor;
+        ApplyTheme(SettingsStore.Current.Theme);
         ApplyAccent(SettingsStore.Current.Accent);
         if (_incognito)
         {
@@ -203,7 +204,8 @@ public partial class MainWindow : Window
 
     private async Task<CoreWebView2Environment> CreateEnvironmentAsync()
     {
-        var args = "--enable-features=WebContentsForceDark";
+        // Force-dark every page only in the dark theme; let pages render normally in light.
+        var args = IsLight ? "" : "--enable-features=WebContentsForceDark";
         var options = new CoreWebView2EnvironmentOptions { AdditionalBrowserArguments = args };
         options.AreBrowserExtensionsEnabled = true; // needed to load the bundled uBlock Origin Lite
         // Incognito windows use an isolated, ephemeral folder; normal windows use the active
@@ -238,6 +240,12 @@ public partial class MainWindow : Window
                 SettingsStore.Save();
                 ApplyAccent(s.Accent); // live
                 break;
+            case "setTheme":
+                s.Theme = root.GetProperty("value").GetString() ?? "dark";
+                SettingsStore.Save();
+                ApplyTheme(s.Theme);                              // chrome updates live
+                core.NavigateToString(SettingsPage.Html(IsLight)); // re-render this page themed
+                break;
             case "addProfile":
                 ProfileStore.Add(root.GetProperty("name").GetString() ?? "");
                 await PushSettings(core);
@@ -261,6 +269,7 @@ public partial class MainWindow : Window
             startup = s.Startup,
             startupUrl = s.StartupUrl,
             accent = s.Accent,
+            theme = s.Theme,
             activeProfile = s.ActiveProfile,
             profiles = ProfileStore.Items,
         });
@@ -309,7 +318,7 @@ public partial class MainWindow : Window
 
         var title = new TextBlock
         {
-            Text = "New Tab", Foreground = Brushes.White, FontSize = 13,
+            Text = "New Tab", Foreground = (Brush)Resources["TabTextInactive"], FontSize = 13,
             VerticalAlignment = VerticalAlignment.Center,
             TextTrimming = TextTrimming.CharacterEllipsis
         };
@@ -360,11 +369,9 @@ public partial class MainWindow : Window
         {
             bool on = t == tab;
             t.View.Visibility = on ? Visibility.Visible : Visibility.Collapsed;
-            t.Header.Background = on
-                ? new SolidColorBrush(Color.FromRgb(0x1b, 0x19, 0x33))
-                : Brushes.Transparent;
+            t.Header.Background = on ? (Brush)Resources["TabActiveBg"] : Brushes.Transparent;
             t.Title.Foreground = on
-                ? Brushes.White : new SolidColorBrush(Color.FromRgb(0xb9, 0xb7, 0xda));
+                ? (Brush)Resources["TabTextActive"] : (Brush)Resources["TabTextInactive"];
         }
         SyncChrome();
     }
@@ -427,6 +434,27 @@ public partial class MainWindow : Window
         catch { /* invalid hex — keep the existing accent */ }
     }
 
+    // Swap the theme surface brushes. Live for the WPF chrome; web/offline pages pick up the
+    // theme when they're next rendered (they're styled separately).
+    private void ApplyTheme(string theme)
+    {
+        bool light = theme == "light";
+        void Set(string key, string dark, string lite) =>
+            Resources[key] = new SolidColorBrush((Color)ColorConverter.ConvertFromString(light ? lite : dark));
+
+        Set("WindowBg",       "#0e0d1c", "#f3f2f8");
+        Set("ChromeBg",       "#1b1933", "#e7e5f1");
+        Set("ChromeBg2",      "#13122a", "#eceaf5");
+        Set("SurfaceBg",      "#0f0e22", "#ffffff");
+        Set("TextPrimary",    "#f0efff", "#1a1830");
+        Set("TextMuted",      "#7e7ba6", "#6b6890");
+        Set("TabTextActive",  "#ffffff", "#1a1830");
+        Set("TabTextInactive","#b9b7da", "#6b6890");
+        Set("TabActiveBg",    "#1b1933", "#dcd9ec");
+    }
+
+    private bool IsLight => SettingsStore.Current.Theme == "light";
+
     private async void InitWebView(BrowserTab tab, bool home, string? url)
     {
         var web = tab.View;
@@ -437,9 +465,10 @@ public partial class MainWindow : Window
 
         await EnsureUBlockAsync(core); // load the bundled ad blocker once per profile
 
-        // Tell sites we prefer dark (Google etc. honour this natively); Chromium's
-        // auto-dark engine (enabled via the env flag) darkens the rest.
-        core.Profile.PreferredColorScheme = CoreWebView2PreferredColorScheme.Dark;
+        // Tell sites which scheme we prefer (Google etc. honour this natively).
+        core.Profile.PreferredColorScheme = IsLight
+            ? CoreWebView2PreferredColorScheme.Light
+            : CoreWebView2PreferredColorScheme.Dark;
 
         core.DocumentTitleChanged += (_, _) =>
             tab.Title.Text = string.IsNullOrWhiteSpace(core.DocumentTitle) ? "New Tab" : core.DocumentTitle;
@@ -486,7 +515,7 @@ public partial class MainWindow : Window
         tab.IsHome = true;
         tab.Title.Text = "New Tab";
         // Incognito windows get the incognito home; normal windows get the regular home page.
-        var html = _incognito ? PrivatePage.PrivateHomeHtml() : HomePage.Html();
+        var html = _incognito ? PrivatePage.PrivateHomeHtml(IsLight) : HomePage.Html(IsLight);
         tab.View.CoreWebView2?.NavigateToString(html);
         if (tab == _active) { AddressBar.Text = ""; AddressBar.Focus(); }
     }
@@ -691,7 +720,7 @@ public partial class MainWindow : Window
         {
             var label = new TextBlock
             {
-                Text = Truncate(bm.Title, 24), Foreground = new SolidColorBrush(Color.FromRgb(0xcf, 0xce, 0xeb)),
+                Text = Truncate(bm.Title, 24), Foreground = (Brush)Resources["TextPrimary"],
                 FontSize = 12, VerticalAlignment = VerticalAlignment.Center
             };
             var chip = new Button
@@ -724,7 +753,7 @@ public partial class MainWindow : Window
         if (_active == null) { AddNewTab(home: true); }
         _active!.IsHome = false;
         _active.Title.Text = "Settings";
-        _active.View.CoreWebView2?.NavigateToString(SettingsPage.Html());
+        _active.View.CoreWebView2?.NavigateToString(SettingsPage.Html(IsLight));
     }
 
     // ----- Edit mode (document.designMode) --------------------------------

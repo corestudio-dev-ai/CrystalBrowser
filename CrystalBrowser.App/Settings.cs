@@ -18,6 +18,9 @@ public class AppSettings
     /// <summary>Accent colour (hex) used to theme the UI.</summary>
     public string Accent { get; set; } = "#7C6CFF";
 
+    /// <summary>UI theme: "dark" (default) or "light".</summary>
+    public string Theme { get; set; } = "dark";
+
     /// <summary>Name of the active Crystal profile.</summary>
     public string ActiveProfile { get; set; } = "Default";
 }

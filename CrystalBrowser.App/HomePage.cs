@@ -7,7 +7,7 @@ namespace CrystalBrowser.App;
 /// </summary>
 public static class HomePage
 {
-    public static string Html() => $$"""
+    public static string Html(bool light = false) => $$"""
 <!doctype html>
 <html lang="en">
 <head>
@@ -62,6 +62,7 @@ public static class HomePage
     background:linear-gradient(90deg,var(--accent),var(--accent2)); transition:width .5s; }
   .sub { font-size:11px; color:#7e7ba6; margin-top:6px; }
 </style>
+{{Theme.PageCss(light)}}
 </head>
 <body>
   <div class="clock" id="clock">--:--</div>

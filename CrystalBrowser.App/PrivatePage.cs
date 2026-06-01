@@ -8,7 +8,7 @@ public static class PrivatePage
     /// throwaway session that's wiped on close. Tor is still shipped in the install but is no
     /// longer wired into browsing, so we no longer claim network-level anonymity here.
     /// </summary>
-    public static string PrivateHomeHtml() => """
+    public static string PrivateHomeHtml(bool light = false) => $$"""
 <!doctype html>
 <html lang="en">
 <head>
@@ -47,6 +47,7 @@ public static class PrivatePage
   .note { font-size:12px; color:#7e7ba6; margin-top:24px; max-width:560px;
     text-align:center; line-height:1.6; }
 </style>
+{{Theme.PageCss(light)}}
 </head>
 <body>
   <div class="shield">
