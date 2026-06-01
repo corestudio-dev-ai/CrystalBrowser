@@ -56,7 +56,11 @@ public partial class MainWindow : Window
             FitToScreen();
             RenderBookmarks();
             AddNewTab(home: true);
-            if (!_tor) _ = CheckForUpdatesAsync(); // only the normal window checks
+            if (!_tor)
+            {
+                _ = CheckForUpdatesAsync(); // only the normal window checks
+                ShowDefaultBrowserNag();    // Chrome-style "set me as default" banner
+            }
         };
     }
 
@@ -312,6 +316,29 @@ public partial class MainWindow : Window
 
     private void BtnUpdateLater_Click(object sender, RoutedEventArgs e) =>
         UpdateBar.Visibility = Visibility.Collapsed;
+
+    // ----- Default-browser nag (Chrome-style) -----------------------------
+
+    private void ShowDefaultBrowserNag()
+    {
+        if (DefaultBrowser.ShouldNag())
+            DefaultBar.Visibility = Visibility.Visible;
+    }
+
+    private void BtnSetDefault_Click(object sender, RoutedEventArgs e)
+    {
+        // Open Windows "Default apps" so the user can pick Crystal Browser, then hide
+        // the banner for this session (it returns next launch if still not default).
+        DefaultBrowser.OpenDefaultAppsSettings();
+        DefaultBar.Visibility = Visibility.Collapsed;
+    }
+
+    private void BtnNoThanks_Click(object sender, RoutedEventArgs e)
+    {
+        // "No thanks" stops the nag for good, like dismissing Chrome's banner.
+        DefaultBrowser.DismissNag();
+        DefaultBar.Visibility = Visibility.Collapsed;
+    }
 
     // ----- Bookmarks ------------------------------------------------------
 

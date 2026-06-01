@@ -121,6 +121,7 @@
             <RowDefinition Height="Auto"/>  <!-- toolbar -->
             <RowDefinition Height="Auto"/>  <!-- bookmarks bar -->
             <RowDefinition Height="Auto"/>  <!-- update banner -->
+            <RowDefinition Height="Auto"/>  <!-- default-browser nag -->
             <RowDefinition Height="*"/>      <!-- content -->
             <RowDefinition Height="Auto"/>  <!-- status bar -->
         </Grid.RowDefinitions>
@@ -263,11 +264,34 @@
             </Grid>
         </Border>
 
+        <!-- Default-browser nag (Chrome-style; shown until set as default or dismissed) -->
+        <Border x:Name="DefaultBar" Grid.Row="4" Visibility="Collapsed" Padding="14,8"
+                Background="#1f2d4d" BorderBrush="#34529a" BorderThickness="0,1,0,1">
+            <Grid>
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="Auto"/>
+                    <ColumnDefinition Width="*"/>
+                    <ColumnDefinition Width="Auto"/>
+                </Grid.ColumnDefinitions>
+                <TextBlock Grid.Column="0" Text="&#128142;" FontSize="14" Foreground="#a9c5ff"
+                           VerticalAlignment="Center" Margin="0,0,10,0"/>
+                <TextBlock Grid.Column="1" Foreground="#eaf1ff" FontSize="13" VerticalAlignment="Center"
+                           Text="Make Crystal Browser your default browser."/>
+                <StackPanel Grid.Column="2" Orientation="Horizontal">
+                    <Button x:Name="BtnSetDefault" Content="Set as default" Click="BtnSetDefault_Click"
+                            Foreground="#ffffff" Background="#3a6bd6" BorderThickness="0" Cursor="Hand"
+                            Padding="14,5" FontSize="13" Margin="0,0,8,0"/>
+                    <Button x:Name="BtnNoThanks" Content="No thanks" Click="BtnNoThanks_Click"
+                            Style="{StaticResource IconBtn}" Width="80"/>
+                </StackPanel>
+            </Grid>
+        </Border>
+
         <!-- Content host (single WebView swapped per active tab) -->
-        <Grid x:Name="BrowserHost" Grid.Row="4" Background="#0e0d1c"/>
+        <Grid x:Name="BrowserHost" Grid.Row="5" Background="#0e0d1c"/>
 
         <!-- Status bar with live system monitor -->
-        <Border Grid.Row="5" Background="#13122a" Padding="12,4">
+        <Border Grid.Row="6" Background="#13122a" Padding="12,4">
             <Grid>
                 <Grid.ColumnDefinitions>
                     <ColumnDefinition Width="*"/>
