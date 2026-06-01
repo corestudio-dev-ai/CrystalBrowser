@@ -21,7 +21,7 @@
     </Content>
   </ItemGroup>
 
-  <!-- Bundle uBlock Origin so ad/tracker blocking is on by default.
+  <!-- Bundle uBlock Origin Lite (MV3) so ad/tracker blocking is on by default.
        Files land under <output>\ublock\... and ship with publish. -->
   <ItemGroup>
     <Content Include="..\third_party\ublock\**\*">

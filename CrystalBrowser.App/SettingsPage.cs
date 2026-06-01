@@ -79,7 +79,7 @@ public static class SettingsPage
   <div class="card">
     <h2>Features</h2>
     <div class="row"><span class="k">Tabs</span><span class="v">Vertical</span></div>
-    <div class="row"><span class="k">Ad blocker</span><span class="v">uBlock Origin (built-in)</span></div>
+    <div class="row"><span class="k">Ad blocker</span><span class="v">uBlock Origin Lite (built-in)</span></div>
     <div class="row"><span class="k">Incognito</span><span class="v">Tor network (bundled)</span></div>
     <div class="row"><span class="k">Edit mode</span><span class="v">document.designMode toggle</span></div>
     <div class="row"><span class="k">System monitor</span><span class="v">Live CPU &amp; RAM</span></div>

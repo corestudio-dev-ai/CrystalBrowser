@@ -15,5 +15,5 @@ installer/Output/
 third_party/tor/
 third_party/*.tar.gz
 
-# Bundled uBlock Origin extension (~16 MB) — fetched separately, see third_party/README.md
+# Bundled uBlock Origin Lite extension (~36 MB) — fetched separately, see third_party/README.md
 third_party/ublock/

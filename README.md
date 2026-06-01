@@ -21,8 +21,8 @@ web with **WebView2** (embedded Chromium).
   sites without a dark theme render dark.
 - **Vertical tabs** — tabs live in a left-hand rail with a fluid neon light that trails your
   cursor.
-- **Built-in ad blocker** — **uBlock Origin** is bundled and loaded on startup, so ads and
-  trackers are blocked by default.
+- **Built-in ad blocker** — **uBlock Origin Lite** (MV3) is bundled and loaded on startup, so
+  ads and trackers are blocked by default.
 - **Incognito windows with bundled Tor** — Tor ships inside Crystal Browser (no separate
   install), so every page in an Incognito window is routed through the **Tor network** for
   complete privacy: your real IP is never exposed and the throwaway profile is wiped on

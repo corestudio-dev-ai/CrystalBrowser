@@ -191,17 +191,17 @@ public partial class MainWindow : Window
         if (_tor && _torPort > 0)
             args += $" --proxy-server=socks5://127.0.0.1:{_torPort}";
         var options = new CoreWebView2EnvironmentOptions { AdditionalBrowserArguments = args };
-        options.AreBrowserExtensionsEnabled = true; // needed to load the bundled uBlock Origin
+        options.AreBrowserExtensionsEnabled = true; // needed to load the bundled uBlock Origin Lite
         // Private windows use an isolated, ephemeral profile folder; normal windows use the default.
         _env = await CoreWebView2Environment.CreateAsync(null, _privateDataDir, options);
         return _env;
     }
 
-    // ----- Bundled uBlock Origin ------------------------------------------
+    // ----- Bundled uBlock Origin Lite -------------------------------------
 
     private bool _ublockLoaded;
 
-    /// <summary>Load the bundled uBlock Origin extension once per profile (best effort).</summary>
+    /// <summary>Load the bundled uBlock Origin Lite (MV3) extension once per profile (best effort).</summary>
     private async Task EnsureUBlockAsync(CoreWebView2 core)
     {
         if (_ublockLoaded) return;
