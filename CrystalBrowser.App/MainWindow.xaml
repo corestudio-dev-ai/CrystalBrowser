@@ -12,33 +12,43 @@
     </shell:WindowChrome.WindowChrome>
     <Window.Resources>
 
-        <!-- Window caption buttons (minimize / maximize / close) — neon styled.
-             The control template is shared; each variant supplies its own neon hue via the
-             "GlowColor"/"GlowBrush" resources referenced in the hover trigger. -->
+        <!-- Window caption buttons (minimize / maximize / close) — fully neon-redesigned.
+             Even at rest each button is a glowing, neon-tinted pill with a coloured glyph;
+             hovering just intensifies its own hue (cyan / violet / pink). -->
         <Style TargetType="Button" x:Key="CaptionBtn">
-            <Setter Property="Foreground" Value="#cfceeb"/>
-            <Setter Property="Background" Value="Transparent"/>
-            <Setter Property="Width" Value="46"/>
-            <Setter Property="Height" Value="34"/>
+            <Setter Property="Width" Value="42"/>
+            <Setter Property="Height" Value="28"/>
             <Setter Property="FontFamily" Value="Segoe MDL2 Assets"/>
             <Setter Property="FontSize" Value="10"/>
+            <Setter Property="Cursor" Value="Hand"/>
             <Setter Property="shell:WindowChrome.IsHitTestVisibleInChrome" Value="True"/>
             <!-- Minimize: neon cyan -->
+            <Setter Property="Foreground" Value="#7DF9FF"/>
+            <Setter Property="Effect">
+                <Setter.Value>
+                    <DropShadowEffect Color="#00E5FF" BlurRadius="8" ShadowDepth="0" Opacity="0.55"/>
+                </Setter.Value>
+            </Setter>
             <Setter Property="Template">
                 <Setter.Value>
                     <ControlTemplate TargetType="Button">
-                        <Border x:Name="b" Background="{TemplateBinding Background}" CornerRadius="6" Margin="2,3">
+                        <Border x:Name="b" Background="#1400E5FF" BorderBrush="#5500E5FF" BorderThickness="1"
+                                CornerRadius="8" Margin="3,4">
                             <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
                         </Border>
                         <ControlTemplate.Triggers>
                             <Trigger Property="IsMouseOver" Value="True">
                                 <Setter TargetName="b" Property="Background" Value="#3300E5FF"/>
-                                <Setter Property="Foreground" Value="#00E5FF"/>
+                                <Setter TargetName="b" Property="BorderBrush" Value="#00E5FF"/>
+                                <Setter Property="Foreground" Value="#CFFFFF"/>
                                 <Setter Property="Effect">
                                     <Setter.Value>
-                                        <DropShadowEffect Color="#00E5FF" BlurRadius="16" ShadowDepth="0" Opacity="1"/>
+                                        <DropShadowEffect Color="#00E5FF" BlurRadius="18" ShadowDepth="0" Opacity="1"/>
                                     </Setter.Value>
                                 </Setter>
+                            </Trigger>
+                            <Trigger Property="IsPressed" Value="True">
+                                <Setter TargetName="b" Property="Background" Value="#5500E5FF"/>
                             </Trigger>
                         </ControlTemplate.Triggers>
                     </ControlTemplate>
@@ -47,21 +57,32 @@
         </Style>
         <!-- Maximize: neon violet -->
         <Style TargetType="Button" x:Key="MaxBtn" BasedOn="{StaticResource CaptionBtn}">
+            <Setter Property="Foreground" Value="#D6BBFF"/>
+            <Setter Property="Effect">
+                <Setter.Value>
+                    <DropShadowEffect Color="#B388FF" BlurRadius="8" ShadowDepth="0" Opacity="0.55"/>
+                </Setter.Value>
+            </Setter>
             <Setter Property="Template">
                 <Setter.Value>
                     <ControlTemplate TargetType="Button">
-                        <Border x:Name="b" Background="{TemplateBinding Background}" CornerRadius="6" Margin="2,3">
+                        <Border x:Name="b" Background="#14B388FF" BorderBrush="#55B388FF" BorderThickness="1"
+                                CornerRadius="8" Margin="3,4">
                             <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
                         </Border>
                         <ControlTemplate.Triggers>
                             <Trigger Property="IsMouseOver" Value="True">
                                 <Setter TargetName="b" Property="Background" Value="#33B388FF"/>
-                                <Setter Property="Foreground" Value="#B388FF"/>
+                                <Setter TargetName="b" Property="BorderBrush" Value="#B388FF"/>
+                                <Setter Property="Foreground" Value="#F1E8FF"/>
                                 <Setter Property="Effect">
                                     <Setter.Value>
-                                        <DropShadowEffect Color="#B388FF" BlurRadius="16" ShadowDepth="0" Opacity="1"/>
+                                        <DropShadowEffect Color="#B388FF" BlurRadius="18" ShadowDepth="0" Opacity="1"/>
                                     </Setter.Value>
                                 </Setter>
+                            </Trigger>
+                            <Trigger Property="IsPressed" Value="True">
+                                <Setter TargetName="b" Property="Background" Value="#55B388FF"/>
                             </Trigger>
                         </ControlTemplate.Triggers>
                     </ControlTemplate>
@@ -70,21 +91,32 @@
         </Style>
         <!-- Close: neon pink -->
         <Style TargetType="Button" x:Key="CloseBtn" BasedOn="{StaticResource CaptionBtn}">
+            <Setter Property="Foreground" Value="#FF8FB8"/>
+            <Setter Property="Effect">
+                <Setter.Value>
+                    <DropShadowEffect Color="#FF3D7E" BlurRadius="8" ShadowDepth="0" Opacity="0.6"/>
+                </Setter.Value>
+            </Setter>
             <Setter Property="Template">
                 <Setter.Value>
                     <ControlTemplate TargetType="Button">
-                        <Border x:Name="b" Background="{TemplateBinding Background}" CornerRadius="6" Margin="2,3">
+                        <Border x:Name="b" Background="#14FF3D7E" BorderBrush="#55FF3D7E" BorderThickness="1"
+                                CornerRadius="8" Margin="3,4">
                             <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
                         </Border>
                         <ControlTemplate.Triggers>
                             <Trigger Property="IsMouseOver" Value="True">
                                 <Setter TargetName="b" Property="Background" Value="#33FF3D7E"/>
+                                <Setter TargetName="b" Property="BorderBrush" Value="#FF3D7E"/>
                                 <Setter Property="Foreground" Value="#FFFFFF"/>
                                 <Setter Property="Effect">
                                     <Setter.Value>
-                                        <DropShadowEffect Color="#FF3D7E" BlurRadius="18" ShadowDepth="0" Opacity="1"/>
+                                        <DropShadowEffect Color="#FF3D7E" BlurRadius="20" ShadowDepth="0" Opacity="1"/>
                                     </Setter.Value>
                                 </Setter>
+                            </Trigger>
+                            <Trigger Property="IsPressed" Value="True">
+                                <Setter TargetName="b" Property="Background" Value="#66FF3D7E"/>
                             </Trigger>
                         </ControlTemplate.Triggers>
                     </ControlTemplate>
