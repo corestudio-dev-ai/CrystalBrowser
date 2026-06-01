@@ -7,7 +7,7 @@ public static class Config
     public const string SearchUrl = "https://www.google.com/search?q=";
 
     /// <summary>This build's version. Bump it each release (and tag the GitHub release to match).</summary>
-    public const string Version = "1.5";
+    public const string Version = "1.5.1";
 
     /// <summary>
     /// GitHub repo (owner/name) whose Releases the in-app updater checks. Set this to your
