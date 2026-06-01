@@ -33,7 +33,18 @@ public partial class MainWindow : Window
     private readonly SystemMonitor _monitor = new();
     private readonly DispatcherTimer _statsTimer = new() { Interval = TimeSpan.FromSeconds(1) };
 
+    // Private-window loading bar: a simulated percentage that climbs while a page loads over
+    // Tor (which gives no real progress events), so the user can see it's actually working.
+    private readonly DispatcherTimer _loadTimer = new() { Interval = TimeSpan.FromMilliseconds(120) };
+    private double _loadPct;
+
+    // A URL to open on launch instead of the home page (set when Windows starts us as the
+    // default browser and hands us a link to open).
+    private readonly string? _initialUrl;
+
     public MainWindow() : this(tor: false) { }
+
+    public MainWindow(string url) : this(tor: false) { _initialUrl = url; }
 
     public MainWindow(bool tor)
     {
@@ -49,13 +60,17 @@ public partial class MainWindow : Window
         }
         _statsTimer.Tick += (_, _) => UpdateSystemStats();
         _statsTimer.Start();
-        Closed += (_, _) => { _monitor.Dispose(); CleanupPrivateProfile(); };
+        _loadTimer.Tick += (_, _) => TickLoadProgress();
+        Closed += (_, _) => { _loadTimer.Stop(); _monitor.Dispose(); CleanupPrivateProfile(); };
         StateChanged += OnStateChanged;
         Loaded += (_, _) =>
         {
             FitToScreen();
             RenderBookmarks();
-            AddNewTab(home: true);
+            if (!string.IsNullOrWhiteSpace(_initialUrl))
+                AddNewTab(url: _initialUrl);
+            else
+                AddNewTab(home: true);
             if (!_tor)
             {
                 _ = CheckForUpdatesAsync(); // only the normal window checks
@@ -229,10 +244,14 @@ public partial class MainWindow : Window
             tab.Title.Text = string.IsNullOrWhiteSpace(core.DocumentTitle) ? "New Tab" : core.DocumentTitle;
 
         core.SourceChanged += (_, _) => { if (tab == _active) SyncChrome(); };
-        core.NavigationStarting += (_, e) => { tab.IsHome = false; if (tab == _active) SetStatus($"Loading {e.Uri} …"); };
+        core.NavigationStarting += (_, e) =>
+        {
+            tab.IsHome = false;
+            if (tab == _active) { SetStatus($"Loading {e.Uri} …"); StartLoadProgress(); }
+        };
         core.NavigationCompleted += (_, _) =>
         {
-            if (tab == _active) { SyncChrome(); ReapplyEditMode(web); }
+            if (tab == _active) { SyncChrome(); ReapplyEditMode(web); FinishLoadProgress(); }
             SetStatus("Done");
         };
         core.NewWindowRequested += (_, e) => { e.Handled = true; AddNewTab(url: e.Uri); };
@@ -249,8 +268,11 @@ public partial class MainWindow : Window
     {
         tab.IsHome = true;
         tab.Title.Text = "New Tab";
-        // In a private window with no Tor running, explain how to start it instead.
-        var html = (_tor && _torPort == 0) ? PrivatePage.TorMissingHtml() : HomePage.Html();
+        // Private windows: show the Tor-bundled private home (or, if Tor isn't reachable,
+        // explain how to start it). Normal windows get the regular home page.
+        var html = _tor
+            ? (_torPort == 0 ? PrivatePage.TorMissingHtml() : PrivatePage.PrivateHomeHtml())
+            : HomePage.Html();
         tab.View.CoreWebView2?.NavigateToString(html);
         if (tab == _active) { AddressBar.Text = ""; AddressBar.Focus(); }
     }
@@ -338,6 +360,45 @@ public partial class MainWindow : Window
         // "No thanks" stops the nag for good, like dismissing Chrome's banner.
         DefaultBrowser.DismissNag();
         DefaultBar.Visibility = Visibility.Collapsed;
+    }
+
+    // ----- Private-window loading progress --------------------------------
+
+    // Only private (Tor) windows get the percentage bar — normal pages load fast enough
+    // that a progress meter would just flicker.
+    private void StartLoadProgress()
+    {
+        if (!_tor) return;
+        _loadPct = 0;
+        ApplyLoadPct();
+        LoadBar.Visibility = Visibility.Visible;
+        _loadTimer.Start();
+    }
+
+    // Ease toward (but never reach) 100% while the page is still loading, so the bar always
+    // shows forward motion. NavigationCompleted snaps it to 100% and hides it.
+    private void TickLoadProgress()
+    {
+        _loadPct += (95 - _loadPct) * 0.08;
+        ApplyLoadPct();
+    }
+
+    private void FinishLoadProgress()
+    {
+        if (!_tor) return;
+        _loadTimer.Stop();
+        _loadPct = 100;
+        ApplyLoadPct();
+        // Let the full bar register for a beat, then hide it.
+        var hide = new DispatcherTimer { Interval = TimeSpan.FromMilliseconds(400) };
+        hide.Tick += (s, _) => { hide.Stop(); LoadBar.Visibility = Visibility.Collapsed; };
+        hide.Start();
+    }
+
+    private void ApplyLoadPct()
+    {
+        LoadPct.Text = $"{_loadPct:0}%";
+        LoadFill.Width = LoadTrack.ActualWidth * _loadPct / 100.0;
     }
 
     // ----- Bookmarks ------------------------------------------------------

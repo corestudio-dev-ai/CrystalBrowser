@@ -19,6 +19,12 @@ web with **WebView2** (embedded Chromium).
 - **Forced dark mode on every page** — Chromium's auto-dark engine
   (`--enable-features=WebContentsForceDark`) plus a dark `prefers-color-scheme`, so even
   sites without a dark theme render dark.
+- **Private windows with bundled Tor** — Tor ships inside Crystal Browser (no separate
+  install), so every page in a private window is routed through the **Tor network** for
+  complete privacy: your real IP is never exposed and the throwaway profile is wiped on
+  close. A live percentage bar shows load progress while pages travel the slower Tor route.
+- **Default-browser prompt** — a Chrome-style banner offers to set Crystal as your default
+  browser, deep-linking to the Windows *Default apps* settings.
 - **Edit mode** — toggle `document.designMode` to edit any live page in place.
 - **Live CPU / RAM monitor** in the status bar and on the home page.
 - **Settings / About** page (⚙ in the toolbar).

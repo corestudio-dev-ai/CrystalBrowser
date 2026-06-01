@@ -3,7 +3,7 @@
 ; binaries (self-contained), so the target machine needs no .NET runtime.
 
 #define AppName "Crystal Browser"
-#define AppVersion "1.1"
+#define AppVersion "1.2"
 #define AppPublisher "Crystal"
 #define AppExe "CrystalBrowser.App.exe"
 
@@ -50,6 +50,21 @@ Name: "{group}\Uninstall Crystal Browser"; Filename: "{uninstallexe}"
 ; Desktop & Quick Launch (optional, chosen on the tasks page)
 Name: "{autodesktop}\Crystal Browser"; Filename: "{app}\{#AppExe}"; Tasks: desktopicon
 Name: "{userappdata}\Microsoft\Internet Explorer\Quick Launch\Crystal Browser"; Filename: "{app}\{#AppExe}"; Tasks: quicklaunchicon
+
+[Registry]
+; Register Crystal Browser with Windows so it shows up as a selectable default browser
+; in Settings > Default apps. Written to HKCU (HKA maps to HKCU for per-user installs).
+; A ProgId that handles http/https links by launching the app with the URL.
+Root: HKA; Subkey: "Software\Classes\CrystalHTM"; ValueType: string; ValueName: ""; ValueData: "Crystal Browser Document"; Flags: uninsdeletekey
+Root: HKA; Subkey: "Software\Classes\CrystalHTM\DefaultIcon"; ValueType: string; ValueName: ""; ValueData: "{app}\{#AppExe},0"
+Root: HKA; Subkey: "Software\Classes\CrystalHTM\shell\open\command"; ValueType: string; ValueName: ""; ValueData: """{app}\{#AppExe}"" ""%1"""
+; Capabilities block that declares the http/https URL associations.
+Root: HKA; Subkey: "Software\Crystal Browser\Capabilities"; ValueType: string; ValueName: "ApplicationName"; ValueData: "{#AppName}"; Flags: uninsdeletekey
+Root: HKA; Subkey: "Software\Crystal Browser\Capabilities"; ValueType: string; ValueName: "ApplicationDescription"; ValueData: "A fast, dark, private Windows browser with bundled Tor."
+Root: HKA; Subkey: "Software\Crystal Browser\Capabilities\URLAssociations"; ValueType: string; ValueName: "http"; ValueData: "CrystalHTM"
+Root: HKA; Subkey: "Software\Crystal Browser\Capabilities\URLAssociations"; ValueType: string; ValueName: "https"; ValueData: "CrystalHTM"
+; Advertise the capabilities to Windows.
+Root: HKA; Subkey: "Software\RegisteredApplications"; ValueType: string; ValueName: "{#AppName}"; ValueData: "Software\Crystal Browser\Capabilities"; Flags: uninsdeletevalue
 
 [Run]
 ; Offer to launch the app from the final wizard page.

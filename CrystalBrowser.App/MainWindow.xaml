@@ -122,6 +122,7 @@
             <RowDefinition Height="Auto"/>  <!-- bookmarks bar -->
             <RowDefinition Height="Auto"/>  <!-- update banner -->
             <RowDefinition Height="Auto"/>  <!-- default-browser nag -->
+            <RowDefinition Height="Auto"/>  <!-- private loading bar -->
             <RowDefinition Height="*"/>      <!-- content -->
             <RowDefinition Height="Auto"/>  <!-- status bar -->
         </Grid.RowDefinitions>
@@ -287,11 +288,34 @@
             </Grid>
         </Border>
 
+        <!-- Private-window loading bar with live percentage. WebView2 is a windowed control
+             that paints over WPF, so this lives in its own row rather than overlaying the page. -->
+        <Border x:Name="LoadBar" Grid.Row="5" Visibility="Collapsed" Background="#15132a"
+                BorderBrush="#2e2563" BorderThickness="0,0,0,1" Padding="14,5">
+            <Grid>
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="Auto"/>
+                    <ColumnDefinition Width="*"/>
+                    <ColumnDefinition Width="Auto"/>
+                </Grid.ColumnDefinitions>
+                <TextBlock Grid.Column="0" Text="&#128737; Loading over Tor" Foreground="#cdbcff"
+                           FontSize="12" VerticalAlignment="Center" Margin="0,0,12,0"/>
+                <Border x:Name="LoadTrack" Grid.Column="1" Height="6" Background="#262445"
+                        CornerRadius="3" VerticalAlignment="Center">
+                    <Border x:Name="LoadFill" HorizontalAlignment="Left" Width="0"
+                            Background="#7c6cff" CornerRadius="3"/>
+                </Border>
+                <TextBlock x:Name="LoadPct" Grid.Column="2" Text="0%" Foreground="#ece9ff"
+                           FontSize="12" Width="42" TextAlignment="Right"
+                           VerticalAlignment="Center" Margin="12,0,0,0"/>
+            </Grid>
+        </Border>
+
         <!-- Content host (single WebView swapped per active tab) -->
-        <Grid x:Name="BrowserHost" Grid.Row="5" Background="#0e0d1c"/>
+        <Grid x:Name="BrowserHost" Grid.Row="6" Background="#0e0d1c"/>
 
         <!-- Status bar with live system monitor -->
-        <Border Grid.Row="6" Background="#13122a" Padding="12,4">
+        <Border Grid.Row="7" Background="#13122a" Padding="12,4">
             <Grid>
                 <Grid.ColumnDefinitions>
                     <ColumnDefinition Width="*"/>
