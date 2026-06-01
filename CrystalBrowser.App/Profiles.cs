@@ -68,6 +68,35 @@ public static class ProfileStore
         }
     }
 
+    /// <summary>The signed-in (synced) account email for a profile, or null if not signed in.</summary>
+    public static string? AccountEmail(string profile)
+    {
+        try
+        {
+            var p = Path.Combine(DataDir(profile), "account.json");
+            if (File.Exists(p))
+            {
+                var a = JsonSerializer.Deserialize<Account>(File.ReadAllText(p));
+                return string.IsNullOrWhiteSpace(a?.Email) ? null : a!.Email;
+            }
+        }
+        catch { /* ignore */ }
+        return null;
+    }
+
+    /// <summary>Sign a profile in (email) or out (null), persisted in the profile folder.</summary>
+    public static void SetAccountEmail(string profile, string? email)
+    {
+        try
+        {
+            File.WriteAllText(Path.Combine(DataDir(profile), "account.json"),
+                JsonSerializer.Serialize(new Account { Email = email }));
+        }
+        catch { /* best effort */ }
+    }
+
+    private sealed class Account { public string? Email { get; set; } }
+
     /// <summary>The isolated WebView2 user-data folder for a profile.</summary>
     public static string DataDir(string name)
     {

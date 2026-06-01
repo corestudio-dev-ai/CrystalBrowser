@@ -260,6 +260,14 @@ public partial class MainWindow : Window
                 new MainWindow().Show();
                 Close();
                 break;
+            case "signIn":
+                ProfileStore.SetAccountEmail(s.ActiveProfile, root.GetProperty("email").GetString());
+                await PushSettings(core);
+                break;
+            case "signOut":
+                ProfileStore.SetAccountEmail(s.ActiveProfile, null);
+                await PushSettings(core);
+                break;
         }
     }
 
@@ -275,6 +283,7 @@ public partial class MainWindow : Window
             theme = s.Theme,
             activeProfile = s.ActiveProfile,
             profiles = ProfileStore.Items,
+            account = ProfileStore.AccountEmail(s.ActiveProfile),
         });
         await core.ExecuteScriptAsync($"window.crystalSettings && window.crystalSettings({payload})");
     }

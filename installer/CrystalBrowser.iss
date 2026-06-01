@@ -3,7 +3,7 @@
 ; binaries (self-contained), so the target machine needs no .NET runtime.
 
 #define AppName "Crystal Browser"
-#define AppVersion "1.5.3"
+#define AppVersion "1.5.4"
 #define AppPublisher "Crystal"
 #define AppExe "CrystalBrowser.App.exe"
 

@@ -67,6 +67,15 @@ public static class SettingsPage
   .profrow:last-child { border-bottom:0; }
   .pill { font-size:11px; color:#cdbcff; background:rgba(124,108,255,.22);
     padding:2px 9px; border-radius:9px; margin-left:8px; }
+  /* Chrome-style profile hero card */
+  .profhero { background:rgba(124,108,255,.10); border:1px solid rgba(124,108,255,.28);
+    border-radius:18px; padding:24px 22px 0; text-align:center; overflow:hidden; }
+  .avatar { width:64px; height:64px; border-radius:50%; margin:0 auto 12px;
+    background:linear-gradient(135deg,var(--accent),var(--accent2)); color:#fff;
+    font-size:28px; font-weight:700; display:flex; align-items:center; justify-content:center; }
+  .phname { font-size:18px; font-weight:700; }
+  .phsync { font-size:13px; color:#9a97c4; margin-top:3px; }
+  .phbar { margin-top:18px; padding:14px; border-top:1px solid rgba(255,255,255,.12); }
 </style>
 {{Theme.PageCss(light)}}
 </head>
@@ -115,8 +124,16 @@ public static class SettingsPage
 
   <div class="card">
     <h2>Crystal profiles</h2>
-    <div class="sub" style="margin-bottom:8px;">Each profile keeps its own separate cookies,
-      logins and history. Switching reopens the window in that profile.</div>
+    <div class="profhero">
+      <div class="avatar" id="avatar">D</div>
+      <div class="phname" id="phname">Default</div>
+      <div class="phsync" id="phsync">Not signed in</div>
+      <div class="phbar">
+        <button class="btn" id="signBtn" onclick="toggleSign()">Sign in to sync</button>
+      </div>
+    </div>
+    <div class="sub" style="margin:16px 0 8px;">Each profile keeps its own separate cookies,
+      logins, history and bookmarks. Switching reopens the window in that profile.</div>
     <div id="profiles"></div>
     <div class="row" style="border:0;">
       <input type="text" id="newProf" placeholder="New profile name">
@@ -161,6 +178,11 @@ public static class SettingsPage
     if(n){ send({type:'addProfile', name:n}); document.getElementById('newProf').value=''; }
   }
   function useProfile(n){ send({type:'switchProfile', name:n}); }
+  var ACCOUNT=null;
+  function toggleSign(){
+    if(ACCOUNT){ send({type:'signOut'}); }
+    else { var e=prompt('Sign in to sync — enter your email:'); if(e && e.trim()) send({type:'signIn', email:e.trim()}); }
+  }
 
   function markTabs(v){
     document.querySelectorAll('#segTabs button').forEach(function(b){
@@ -192,6 +214,13 @@ public static class SettingsPage
     document.documentElement.style.setProperty('--accent', s.accent);
     var r=document.querySelector('input[name=su][value="'+(s.startup||'newtab')+'"]'); if(r) r.checked=true;
     document.getElementById('suUrl').value = s.startupUrl||'';
+    // Chrome-like profile hero
+    ACCOUNT = s.account || null;
+    var initial = (ACCOUNT || s.activeProfile || 'D').trim().charAt(0).toUpperCase();
+    document.getElementById('avatar').textContent = initial || 'D';
+    document.getElementById('phname').textContent = s.activeProfile || 'Default';
+    document.getElementById('phsync').textContent = ACCOUNT ? ('Synced as '+ACCOUNT) : 'Not signed in';
+    document.getElementById('signBtn').textContent = ACCOUNT ? 'Sign out' : 'Sign in to sync';
     var box=document.getElementById('profiles'); box.innerHTML='';
     (s.profiles||['Default']).forEach(function(p){
       var row=document.createElement('div'); row.className='profrow';

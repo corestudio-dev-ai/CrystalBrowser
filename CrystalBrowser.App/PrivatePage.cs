@@ -23,8 +23,7 @@ public static class PrivatePage
     background:radial-gradient(1000px 600px at 50% -10%, #232136 0%, #15132a 55%, #0e0d1c 100%);
     min-height:100%; display:flex; flex-direction:column; align-items:center;
     padding:0 20px; overflow-x:hidden; }
-  .shield { margin-top:11vh; }
-  .shield svg { width:58px; height:58px; }
+  .shield { margin-top:11vh; font-size:54px; }
   h1 { font-size:30px; font-weight:700; margin-top:8px; }
   h1 span { color:var(--accent); }
   .lead { color:#cbc9ec; font-size:15px; line-height:1.6; margin-top:14px;
@@ -50,14 +49,7 @@ public static class PrivatePage
 {{Theme.PageCss(light)}}
 </head>
 <body>
-  <div class="shield">
-    <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-      <path d="M4 12 L6 7 H18 L20 12" stroke="#b39bff" stroke-width="1.5" stroke-linejoin="round"/>
-      <circle cx="7.5" cy="15" r="3" stroke="#b39bff" stroke-width="1.5"/>
-      <circle cx="16.5" cy="15" r="3" stroke="#b39bff" stroke-width="1.5"/>
-      <path d="M3 12 H21 M10.5 15 H13.5" stroke="#b39bff" stroke-width="1.5" stroke-linecap="round"/>
-    </svg>
-  </div>
+  <div class="shield">🛡️</div>
   <h1>You've gone <span>Incognito</span></h1>
   <p class="lead">This is a private, throwaway session. Pages you visit here aren't saved to
      your history, and cookies, site data and the cache are wiped when you close the window.</p>

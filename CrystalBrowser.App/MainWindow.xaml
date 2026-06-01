@@ -417,7 +417,7 @@
                     <ColumnDefinition Width="*"/>
                     <ColumnDefinition Width="Auto"/>
                 </Grid.ColumnDefinitions>
-                <TextBlock Grid.Column="0" Text="Loading…" Foreground="#cdbcff"
+                <TextBlock Grid.Column="0" Text="&#128737; Loading…" Foreground="#cdbcff"
                            FontSize="12" VerticalAlignment="Center" Margin="0,0,12,0"/>
                 <Border x:Name="LoadTrack" Grid.Column="1" Height="6" Background="#262445"
                         CornerRadius="3" VerticalAlignment="Center">
