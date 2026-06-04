@@ -17,3 +17,6 @@ third_party/*.tar.gz
 
 # Bundled uBlock Origin Lite extension (~36 MB) — fetched separately, see third_party/README.md
 third_party/ublock/
+
+# Local project instructions for Claude Code (not part of the shipped repo)
+CLAUDE.md

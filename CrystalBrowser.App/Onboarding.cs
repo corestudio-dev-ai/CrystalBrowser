@@ -32,7 +32,6 @@ public static class Onboarding
   .feat { display:flex; gap:14px; align-items:flex-start; padding:13px 0;
     border-bottom:1px solid rgba(255,255,255,.06); }
   .feat:last-child { border-bottom:0; }
-  .feat .ic { font-size:22px; width:30px; text-align:center; }
   .feat .t { font-weight:600; font-size:15px; }
   .feat .d { color:#9a97c4; font-size:13px; margin-top:2px; line-height:1.5; }
   .opts { display:flex; gap:12px; flex-wrap:wrap; margin-top:20px; }
@@ -70,13 +69,13 @@ public static class Onboarding
     <h2>Welcome to Crystal</h2>
     <p class="lead">A fast, private, Chromium-based browser. Here's what comes built in:</p>
     <div style="margin-top:14px;">
-      <div class="feat"><div class="ic">🛡️</div><div><div class="t">Ad &amp; tracker blocking</div>
+      <div class="feat"><div><div class="t">Ad &amp; tracker blocking</div>
         <div class="d">uBlock Origin Lite is built in and on by default — no setup.</div></div></div>
-      <div class="feat"><div class="ic">👤</div><div><div class="t">Crystal profiles</div>
+      <div class="feat"><div><div class="t">Crystal profiles</div>
         <div class="d">Keep work and personal browsing fully separate, each with its own data.</div></div></div>
-      <div class="feat"><div class="ic">🕶️</div><div><div class="t">Incognito windows</div>
+      <div class="feat"><div><div class="t">Incognito windows</div>
         <div class="d">Throwaway sessions that wipe themselves when you close them.</div></div></div>
-      <div class="feat"><div class="ic">📊</div><div><div class="t">Live system monitor</div>
+      <div class="feat"><div><div class="t">Live system monitor</div>
         <div class="d">Your new-tab page shows real-time CPU and memory usage.</div></div></div>
     </div>
   </div>
@@ -120,7 +119,7 @@ public static class Onboarding
 
   <!-- 6. Done -->
   <div class="step" data-step="5">
-    <h2>You're all set ✨</h2>
+    <h2>You're all set</h2>
     <p class="lead">Crystal is ready to go. Tweak anything later from the Settings page.</p>
   </div>
 

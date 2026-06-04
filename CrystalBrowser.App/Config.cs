@@ -20,7 +20,7 @@ public static class Config
     public static string SearchName(string engine) => engine == "duckduckgo" ? "DuckDuckGo" : "Google";
 
     /// <summary>This build's version. Bump it each release (and tag the GitHub release to match).</summary>
-    public const string Version = "1.6";
+    public const string Version = "1.6.1";
 
     /// <summary>
     /// GitHub repo (owner/name) whose Releases the in-app updater checks. Set this to your
