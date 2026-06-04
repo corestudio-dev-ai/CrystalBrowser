@@ -49,6 +49,9 @@ public partial class MainWindow : Window
     // default browser and hands us a link to open).
     private readonly string? _initialUrl;
 
+    // True while the first-run onboarding page is showing (changes how theme messages behave).
+    private bool _onboarding;
+
     public MainWindow() : this(tor: false) { }
 
     public MainWindow(string url) : this(tor: false) { _initialUrl = url; }
@@ -88,7 +91,15 @@ public partial class MainWindow : Window
             ApplyTabLayout(SettingsStore.Current.TabLayout);
             RenderBookmarks();
             var startupUrl = StartupTarget();
-            if (!string.IsNullOrWhiteSpace(_initialUrl))
+            // First launch (a normal window, no link handed to us): run the onboarding flow.
+            bool firstRun = !_incognito && !SettingsStore.Current.OnboardingDone
+                            && string.IsNullOrWhiteSpace(_initialUrl);
+            if (firstRun)
+            {
+                _onboarding = true;
+                AddNewTab(onboarding: true);
+            }
+            else if (!string.IsNullOrWhiteSpace(_initialUrl))
                 AddNewTab(url: _initialUrl);
             else if (startupUrl != null)
                 AddNewTab(url: startupUrl);
@@ -98,7 +109,7 @@ public partial class MainWindow : Window
             {
                 _ = CheckForUpdatesAsync(); // first check immediately…
                 _updateTimer.Start();       // …then keep polling every 60s until one is found
-                ShowDefaultBrowserNag();    // Chrome-style "set me as default" banner
+                if (!_onboarding) ShowDefaultBrowserNag(); // onboarding has its own "set default" step
             }
         };
     }
@@ -245,9 +256,25 @@ public partial class MainWindow : Window
                 break;
             case "setTheme":
                 s.Theme = root.GetProperty("value").GetString() ?? "dark";
+                s.Accent = Theme.Get(s.Theme).Accent; // each theme carries its own accent
                 SettingsStore.Save();
-                ApplyTheme(s.Theme);                              // chrome updates live
-                core.NavigateToString(SettingsPage.Html(IsLight)); // re-render this page themed
+                ApplyTheme(s.Theme);  // chrome updates live
+                ApplyAccent(s.Accent);
+                if (_onboarding)
+                {
+                    // Hot-swap the onboarding page's theme CSS so it previews without a reload.
+                    var css = JsonSerializer.Serialize(Theme.PageCssInner(s.Theme));
+                    await core.ExecuteScriptAsync($"window.crystalTheme && window.crystalTheme({css})");
+                }
+                else
+                {
+                    core.NavigateToString(SettingsPage.Html(s.Theme)); // re-render this page themed
+                }
+                break;
+            case "setSearchEngine":
+                s.SearchEngine = root.GetProperty("value").GetString() ?? "google";
+                SettingsStore.Save();
+                if (!_onboarding) await PushSettings(core);
                 break;
             case "addProfile":
                 ProfileStore.Add(root.GetProperty("name").GetString() ?? "");
@@ -268,7 +295,53 @@ public partial class MainWindow : Window
                 ProfileStore.SetAccountEmail(s.ActiveProfile, null);
                 await PushSettings(core);
                 break;
+
+            // ----- Onboarding (first run) -----
+            case "getOnboarding":
+                await PushOnboarding(core);
+                break;
+            case "importBookmarks":
+                ImportBookmarks(root.GetProperty("source").GetString(), core);
+                break;
+            case "setDefaultBrowser":
+                DefaultBrowser.OpenDefaultAppsSettings();
+                break;
+            case "finishOnboarding":
+                s.OnboardingDone = true;
+                SettingsStore.Save();
+                _onboarding = false;
+                if (_active != null) GoHome(_active);
+                if (!_incognito) ShowDefaultBrowserNag();
+                break;
         }
+    }
+
+    // Push the onboarding page's initial state: themes, current selections, and importable browsers.
+    private static async Task PushOnboarding(CoreWebView2 core)
+    {
+        var s = SettingsStore.Current;
+        var themes = Theme.All.Select(t => new { key = t.Key, name = t.Name, swatch = t.Accent });
+        var sources = BookmarkImport.Available()
+            .Select(src => new { id = src.Id, name = src.Name, count = BookmarkImport.Read(src.Path).Count });
+        var payload = JsonSerializer.Serialize(new
+        {
+            theme = s.Theme,
+            engine = s.SearchEngine,
+            themes,
+            sources,
+        });
+        await core.ExecuteScriptAsync($"window.crystalOnboard && window.crystalOnboard({payload})");
+    }
+
+    // Import bookmarks from the chosen installed browser into the active profile, then report the count.
+    private async void ImportBookmarks(string? sourceId, CoreWebView2 core)
+    {
+        int added = 0;
+        var src = BookmarkImport.Available().FirstOrDefault(x => x.Id == sourceId);
+        if (src != null) added = _bookmarks.Import(BookmarkImport.Read(src.Path));
+        RenderBookmarks();
+        await core.ExecuteScriptAsync(
+            $"window.crystalImportResult && window.crystalImportResult({JsonSerializer.Serialize(sourceId)},{added})");
     }
 
     private static async Task PushSettings(CoreWebView2 core)
@@ -281,6 +354,7 @@ public partial class MainWindow : Window
             startupUrl = s.StartupUrl,
             accent = s.Accent,
             theme = s.Theme,
+            searchEngine = s.SearchEngine,
             activeProfile = s.ActiveProfile,
             profiles = ProfileStore.Items,
             account = ProfileStore.AccountEmail(s.ActiveProfile),
@@ -323,7 +397,7 @@ public partial class MainWindow : Window
         return null;
     }
 
-    private void AddNewTab(bool home = false, string? url = null)
+    private void AddNewTab(bool home = false, string? url = null, bool onboarding = false)
     {
         var web = new WebView2 { Visibility = Visibility.Collapsed };
         BrowserHost.Children.Add(web);
@@ -358,7 +432,7 @@ public partial class MainWindow : Window
         close.Click += (s, e) => { e.Handled = true; CloseTab(tab); };
 
         Activate(tab);
-        InitWebView(tab, home, url);
+        InitWebView(tab, home, url, onboarding);
     }
 
     private void CloseTab(BrowserTab tab)
@@ -446,32 +520,33 @@ public partial class MainWindow : Window
         catch { /* invalid hex — keep the existing accent */ }
     }
 
-    // Swap the theme surface brushes. Live for the WPF chrome; web/offline pages pick up the
-    // theme when they're next rendered (they're styled separately).
+    // Swap the theme surface brushes from the chosen theme's palette. Live for the WPF chrome;
+    // web/offline pages pick up the theme when they're next rendered (they're styled separately).
     private void ApplyTheme(string theme)
     {
-        bool light = theme == "light";
-        void Set(string key, string dark, string lite) =>
-            Resources[key] = new SolidColorBrush((Color)ColorConverter.ConvertFromString(light ? lite : dark));
+        var t = Theme.Get(theme);
+        void Set(string key, string hex) =>
+            Resources[key] = new SolidColorBrush((Color)ColorConverter.ConvertFromString(hex));
 
-        Set("WindowBg",       "#0e0d1c", "#f3f2f8");
-        Set("ChromeBg",       "#1b1933", "#e7e5f1");
-        Set("ChromeBg2",      "#13122a", "#eceaf5");
-        Set("SurfaceBg",      "#0f0e22", "#ffffff");
-        Set("TextPrimary",    "#f0efff", "#1a1830");
-        Set("TextMuted",      "#7e7ba6", "#6b6890");
-        Set("TabTextActive",  "#ffffff", "#1a1830");
-        Set("TabTextInactive","#b9b7da", "#6b6890");
-        Set("TabActiveBg",    "#1b1933", "#dcd9ec");
+        Set("WindowBg",        t.WindowBg);
+        Set("ChromeBg",        t.ChromeBg);
+        Set("ChromeBg2",       t.ChromeBg2);
+        Set("SurfaceBg",       t.SurfaceBg);
+        Set("TextPrimary",     t.TextPrimary);
+        Set("TextMuted",       t.TextMuted);
+        Set("TabTextActive",   t.TabTextActive);
+        Set("TabTextInactive", t.TabTextInactive);
+        Set("TabActiveBg",     t.TabActiveBg);
     }
 
-    private bool IsLight => SettingsStore.Current.Theme == "light";
+    private bool IsLight => Theme.IsLight(SettingsStore.Current.Theme);
 
-    private async void InitWebView(BrowserTab tab, bool home, string? url)
+    private async void InitWebView(BrowserTab tab, bool home, string? url, bool onboarding = false)
     {
         var web = tab.View;
-        // Dark canvas behind every page so navigations don't flash blinding white.
-        web.DefaultBackgroundColor = System.Drawing.Color.FromArgb(0xFF, 0x0E, 0x0D, 0x1C);
+        // Themed canvas behind every page so navigations don't flash a contrasting colour.
+        var wc = (Color)ColorConverter.ConvertFromString(Theme.Get(SettingsStore.Current.Theme).WindowBg);
+        web.DefaultBackgroundColor = System.Drawing.Color.FromArgb(0xFF, wc.R, wc.G, wc.B);
         await web.EnsureCoreWebView2Async(await GetEnvironmentAsync());
         var core = web.CoreWebView2;
 
@@ -514,7 +589,13 @@ public partial class MainWindow : Window
             catch { /* not a settings message */ }
         };
 
-        if (home || url == null)
+        if (onboarding)
+        {
+            tab.IsHome = false;
+            tab.Title.Text = "Welcome to Crystal";
+            core.NavigateToString(Onboarding.Html(SettingsStore.Current.Theme));
+        }
+        else if (home || url == null)
             GoHome(tab);
         else
             Navigate(web, url);
@@ -526,8 +607,10 @@ public partial class MainWindow : Window
     {
         tab.IsHome = true;
         tab.Title.Text = "New Tab";
+        var theme = SettingsStore.Current.Theme;
+        var engine = SettingsStore.Current.SearchEngine;
         // Incognito windows get the incognito home; normal windows get the regular home page.
-        var html = _incognito ? PrivatePage.PrivateHomeHtml(IsLight) : HomePage.Html(IsLight);
+        var html = _incognito ? PrivatePage.PrivateHomeHtml(theme, engine) : HomePage.Html(theme, engine);
         tab.View.CoreWebView2?.NavigateToString(html);
         if (tab == _active) { AddressBar.Text = ""; AddressBar.Focus(); }
     }
@@ -542,11 +625,12 @@ public partial class MainWindow : Window
 
     private static string Resolve(string input)
     {
+        var search = Config.SearchQueryUrl(SettingsStore.Current.SearchEngine);
         input = input.Trim();
-        if (string.IsNullOrEmpty(input)) return Config.SearchUrl;
+        if (string.IsNullOrEmpty(input)) return search;
         if (input.StartsWith("http://") || input.StartsWith("https://")) return input;
         if (!input.Contains(' ') && input.Contains('.') && !input.Contains('?')) return "https://" + input;
-        return Config.SearchUrl + Uri.EscapeDataString(input);
+        return search + Uri.EscapeDataString(input);
     }
 
     private void GoFromAddressBar()
@@ -765,7 +849,7 @@ public partial class MainWindow : Window
         if (_active == null) { AddNewTab(home: true); }
         _active!.IsHome = false;
         _active.Title.Text = "Settings";
-        _active.View.CoreWebView2?.NavigateToString(SettingsPage.Html(IsLight));
+        _active.View.CoreWebView2?.NavigateToString(SettingsPage.Html(SettingsStore.Current.Theme));
     }
 
     // ----- Edit mode (document.designMode) --------------------------------
@@ -807,8 +891,9 @@ public partial class MainWindow : Window
     private static string Prettify(string url)
     {
         if (string.IsNullOrEmpty(url) || url == "about:blank") return "";
-        // Show the typed query (not the full Google URL) for search result pages.
-        if (url.StartsWith("https://www.google.com/search", StringComparison.OrdinalIgnoreCase))
+        // Show the typed query (not the full URL) for search result pages.
+        if (url.StartsWith("https://www.google.com/search", StringComparison.OrdinalIgnoreCase) ||
+            url.StartsWith("https://duckduckgo.com/?", StringComparison.OrdinalIgnoreCase))
         {
             var query = new Uri(url).Query.TrimStart('?');
             foreach (var pair in query.Split('&', StringSplitOptions.RemoveEmptyEntries))

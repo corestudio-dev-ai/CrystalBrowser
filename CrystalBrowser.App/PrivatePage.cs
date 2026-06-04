@@ -8,7 +8,7 @@ public static class PrivatePage
     /// throwaway session that's wiped on close. Tor is still shipped in the install but is no
     /// longer wired into browsing, so we no longer claim network-level anonymity here.
     /// </summary>
-    public static string PrivateHomeHtml(bool light = false) => $$"""
+    public static string PrivateHomeHtml(string theme = "dark", string engine = "google") => $$"""
 <!doctype html>
 <html lang="en">
 <head>
@@ -46,7 +46,7 @@ public static class PrivatePage
   .note { font-size:12px; color:#7e7ba6; margin-top:24px; max-width:560px;
     text-align:center; line-height:1.6; }
 </style>
-{{Theme.PageCss(light)}}
+{{Theme.PageCss(theme)}}
 </head>
 <body>
   <div class="shield">🛡️</div>
@@ -54,7 +54,7 @@ public static class PrivatePage
   <p class="lead">This is a private, throwaway session. Pages you visit here aren't saved to
      your history, and cookies, site data and the cache are wiped when you close the window.</p>
 
-  <form action="https://www.google.com/search" method="get">
+  <form action="{{Config.SearchFormAction(engine)}}" method="get">
     <input name="q" autofocus autocomplete="off" placeholder="Search the web…">
     <button class="go" type="submit">&#10148;</button>
   </form>

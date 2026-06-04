@@ -18,11 +18,17 @@ public class AppSettings
     /// <summary>Accent colour (hex) used to theme the UI.</summary>
     public string Accent { get; set; } = "#7C6CFF";
 
-    /// <summary>UI theme: "dark" (default) or "light".</summary>
+    /// <summary>UI theme key: "dark" (Crystal, default), "light", "midnight", "forest" or "rose".</summary>
     public string Theme { get; set; } = "dark";
+
+    /// <summary>Search engine key: "google" (default) or "duckduckgo".</summary>
+    public string SearchEngine { get; set; } = "google";
 
     /// <summary>Name of the active Crystal profile.</summary>
     public string ActiveProfile { get; set; } = "Default";
+
+    /// <summary>True once the first-run onboarding flow has been completed (or skipped).</summary>
+    public bool OnboardingDone { get; set; } = false;
 }
 
 /// <summary>Loads and saves the single shared <see cref="AppSettings"/> instance.</summary>

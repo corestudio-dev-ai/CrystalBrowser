@@ -9,7 +9,11 @@ public static class SettingsPage
 {
     public const string Version = Config.Version;
 
-    public static string Html(bool light = false) => $$"""
+    // A JS array literal of the selectable themes, e.g. [{key:'dark',name:'Crystal'},…]
+    private static string ThemesJs =>
+        "[" + string.Join(",", Theme.All.Select(t => $"{{key:'{t.Key}',name:'{t.Name}'}}")) + "]";
+
+    public static string Html(string theme = "dark") => $$"""
 <!doctype html>
 <html lang="en">
 <head>
@@ -77,7 +81,7 @@ public static class SettingsPage
   .phsync { font-size:13px; color:#9a97c4; margin-top:3px; }
   .phbar { margin-top:18px; padding:14px; border-top:1px solid rgba(255,255,255,.12); }
 </style>
-{{Theme.PageCss(light)}}
+{{Theme.PageCss(theme)}}
 </head>
 <body>
 <div class="wrap">
@@ -101,15 +105,23 @@ public static class SettingsPage
       </div>
     </div>
     <div class="row">
-      <div><div class="k">Theme</div><div class="sub">Dark or light interface.</div></div>
-      <div class="seg" id="segTheme">
-        <button data-v="dark" onclick="setTheme('dark')">Dark</button>
-        <button data-v="light" onclick="setTheme('light')">Light</button>
-      </div>
+      <div><div class="k">Theme</div><div class="sub">Each theme sets a colour and accent.</div></div>
+      <div class="seg" id="segTheme"></div>
     </div>
     <div class="row">
-      <div><div class="k">Accent colour</div><div class="sub">Themes the browser UI.</div></div>
+      <div><div class="k">Accent colour</div><div class="sub">Fine-tune the accent on top of your theme.</div></div>
       <div class="swatches" id="swatches"></div>
+    </div>
+  </div>
+
+  <div class="card">
+    <h2>Search</h2>
+    <div class="row">
+      <div><div class="k">Search engine</div><div class="sub">Used by the address bar and new-tab search.</div></div>
+      <div class="seg" id="segEngine">
+        <button data-v="google" onclick="setEngine('google')">Google</button>
+        <button data-v="duckduckgo" onclick="setEngine('duckduckgo')">DuckDuckGo</button>
+      </div>
     </div>
   </div>
 
@@ -157,15 +169,17 @@ public static class SettingsPage
     <div class="row"><span class="k">Version</span><span class="v">{{Version}}</span></div>
     <div class="row"><span class="k">Engine</span><span class="v">WebView2 (Chromium)</span></div>
     <div class="row"><span class="k">Ad blocker</span><span class="v">uBlock Origin Lite (built-in)</span></div>
-    <div class="row"><span class="k">Search</span><span class="v">Google</span></div>
+    <div class="row"><span class="k">Search</span><span class="v" id="aboutSearch">Google</span></div>
   </div>
 </div>
 <script>
   var ACCENTS = ['#7C6CFF','#00E5FF','#FF3D7E','#69F0AE','#FF6E40','#FFD166'];
+  var THEMES = {{ThemesJs}};
   function send(o){ if(window.chrome && window.chrome.webview) window.chrome.webview.postMessage(JSON.stringify(o)); }
 
   function setTabs(v){ send({type:'setTabLayout', value:v}); markTabs(v); }
   function setTheme(v){ send({type:'setTheme', value:v}); markTheme(v); }
+  function setEngine(v){ send({type:'setSearchEngine', value:v}); markEngine(v); }
   function setAccent(v){ send({type:'setAccent', value:v}); markAccent(v);
     document.documentElement.style.setProperty('--accent', v); }
   function setStartup(){
@@ -192,6 +206,19 @@ public static class SettingsPage
     document.querySelectorAll('#segTheme button').forEach(function(b){
       b.classList.toggle('on', b.dataset.v===v); });
   }
+  function markEngine(v){
+    document.querySelectorAll('#segEngine button').forEach(function(b){
+      b.classList.toggle('on', b.dataset.v===v); });
+    document.getElementById('aboutSearch').textContent = v==='duckduckgo' ? 'DuckDuckGo' : 'Google';
+  }
+  function buildThemes(){
+    var box=document.getElementById('segTheme'); box.innerHTML='';
+    THEMES.forEach(function(t){
+      var b=document.createElement('button'); b.dataset.v=t.key; b.textContent=t.name;
+      b.onclick=function(){ setTheme(t.key); };
+      box.appendChild(b);
+    });
+  }
   function markAccent(v){
     document.querySelectorAll('#swatches .sw').forEach(function(s){
       s.classList.toggle('on', (s.dataset.v||'').toUpperCase()===(v||'').toUpperCase()); });
@@ -210,6 +237,7 @@ public static class SettingsPage
   window.crystalSettings = function(s){
     markTabs(s.tabLayout);
     markTheme(s.theme||'dark');
+    markEngine(s.searchEngine||'google');
     markAccent(s.accent);
     document.documentElement.style.setProperty('--accent', s.accent);
     var r=document.querySelector('input[name=su][value="'+(s.startup||'newtab')+'"]'); if(r) r.checked=true;
@@ -253,6 +281,7 @@ public static class SettingsPage
     else { u.textContent=''; }
   };
 
+  buildThemes();
   buildSwatches();
   send({type:'getSettings'});
 </script>

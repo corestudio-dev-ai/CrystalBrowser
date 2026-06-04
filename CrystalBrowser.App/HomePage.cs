@@ -7,7 +7,7 @@ namespace CrystalBrowser.App;
 /// </summary>
 public static class HomePage
 {
-    public static string Html(bool light = false) => $$"""
+    public static string Html(string theme = "dark", string engine = "google") => $$"""
 <!doctype html>
 <html lang="en">
 <head>
@@ -62,7 +62,7 @@ public static class HomePage
     background:linear-gradient(90deg,var(--accent),var(--accent2)); transition:width .5s; }
   .sub { font-size:11px; color:#7e7ba6; margin-top:6px; }
 </style>
-{{Theme.PageCss(light)}}
+{{Theme.PageCss(theme)}}
 </head>
 <body>
   <div class="clock" id="clock">--:--</div>
@@ -70,8 +70,8 @@ public static class HomePage
 
   <div class="logo">Crystal<span>Browser</span></div>
 
-  <form action="https://www.google.com/search" method="get">
-    <input name="q" autofocus autocomplete="off" placeholder="Search Google or type a URL…">
+  <form action="{{Config.SearchFormAction(engine)}}" method="get">
+    <input name="q" autofocus autocomplete="off" placeholder="Search {{Config.SearchName(engine)}} or type a URL…">
     <button class="go" type="submit">&#10148;</button>
   </form>
 

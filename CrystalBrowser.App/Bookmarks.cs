@@ -81,4 +81,18 @@ public class BookmarkStore
         Items.RemoveAll(b => string.Equals(b.Url, url, StringComparison.OrdinalIgnoreCase));
         Save();
     }
+
+    /// <summary>Bulk-add bookmarks (skipping ones already saved), persisting once. Returns how many were added.</summary>
+    public int Import(IEnumerable<Bookmark> incoming)
+    {
+        int added = 0;
+        foreach (var b in incoming)
+        {
+            if (string.IsNullOrWhiteSpace(b.Url) || Contains(b.Url)) continue;
+            Items.Add(new Bookmark(string.IsNullOrWhiteSpace(b.Title) ? b.Url : b.Title, b.Url));
+            added++;
+        }
+        if (added > 0) Save();
+        return added;
+    }
 }
