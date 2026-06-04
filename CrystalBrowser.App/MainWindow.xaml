@@ -201,6 +201,7 @@
             <RowDefinition Height="Auto"/>  <!-- tab strip -->
             <RowDefinition Height="Auto"/>  <!-- toolbar -->
             <RowDefinition Height="Auto"/>  <!-- bookmarks bar -->
+            <RowDefinition Height="Auto"/>  <!-- unsupported-version nag -->
             <RowDefinition Height="Auto"/>  <!-- update banner -->
             <RowDefinition Height="Auto"/>  <!-- default-browser nag -->
             <RowDefinition Height="Auto"/>  <!-- private loading bar -->
@@ -333,8 +334,34 @@
             </ScrollViewer>
         </Border>
 
+        <!-- Unsupported-version nag: shown every launch when the running build is
+             end-of-life (see SupportPolicy). It nags but never blocks — the browser
+             stays fully usable, and "Later" only hides it for this session. -->
+        <Border x:Name="UnsupportedBar" Grid.Row="3" Visibility="Collapsed" Padding="14,8"
+                Background="#4a2730" BorderBrush="#8a3b48" BorderThickness="0,1,0,1">
+            <Grid>
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="Auto"/>
+                    <ColumnDefinition Width="*"/>
+                    <ColumnDefinition Width="Auto"/>
+                </Grid.ColumnDefinitions>
+                <TextBlock Grid.Column="0" Text="&#xE7BA;" FontFamily="Segoe MDL2 Assets" FontSize="14"
+                           Foreground="#ffb3bf" VerticalAlignment="Center" Margin="0,0,10,0"/>
+                <TextBlock x:Name="UnsupportedText" Grid.Column="1" Foreground="#ffe6ea" FontSize="13"
+                           VerticalAlignment="Center" TextWrapping="Wrap"
+                           Text="This version of Crystal Browser is no longer supported. You can keep using it, but please update to the latest version."/>
+                <StackPanel Grid.Column="2" Orientation="Horizontal">
+                    <Button x:Name="BtnUnsupportedUpdate" Content="Update now" Click="BtnUnsupportedUpdate_Click"
+                            Foreground="#ffffff" Background="{DynamicResource AccentBrush}" BorderThickness="0" Cursor="Hand"
+                            Padding="14,5" FontSize="13" Margin="0,0,8,0"/>
+                    <Button x:Name="BtnUnsupportedLater" Content="Later" Click="BtnUnsupportedLater_Click"
+                            Style="{StaticResource IconBtn}" Width="60"/>
+                </StackPanel>
+            </Grid>
+        </Border>
+
         <!-- Update banner (shown only when a new version is available) -->
-        <Border x:Name="UpdateBar" Grid.Row="3" Visibility="Collapsed" Padding="14,8"
+        <Border x:Name="UpdateBar" Grid.Row="4" Visibility="Collapsed" Padding="14,8"
                 Background="#2e2563" BorderBrush="#4a3da0" BorderThickness="0,1,0,1">
             <Grid>
                 <Grid.ColumnDefinitions>
@@ -357,7 +384,7 @@
         </Border>
 
         <!-- Default-browser nag (Chrome-style; shown until set as default or dismissed) -->
-        <Border x:Name="DefaultBar" Grid.Row="4" Visibility="Collapsed" Padding="14,8"
+        <Border x:Name="DefaultBar" Grid.Row="5" Visibility="Collapsed" Padding="14,8"
                 Background="#1f2d4d" BorderBrush="#34529a" BorderThickness="0,1,0,1">
             <Grid>
                 <Grid.ColumnDefinitions>
@@ -381,7 +408,7 @@
 
         <!-- Private-window loading bar with live percentage. WebView2 is a windowed control
              that paints over WPF, so this lives in its own row rather than overlaying the page. -->
-        <Border x:Name="LoadBar" Grid.Row="5" Visibility="Collapsed" Background="#15132a"
+        <Border x:Name="LoadBar" Grid.Row="6" Visibility="Collapsed" Background="#15132a"
                 BorderBrush="#2e2563" BorderThickness="0,0,0,1" Padding="14,5">
             <Grid>
                 <Grid.ColumnDefinitions>
@@ -403,7 +430,7 @@
         </Border>
 
         <!-- Body: vertical tab sidebar (left), web content (centre), AI companion (right) -->
-        <Grid Grid.Row="6">
+        <Grid Grid.Row="7">
             <Grid.ColumnDefinitions>
                 <ColumnDefinition Width="Auto"/>
                 <ColumnDefinition Width="*"/>
@@ -476,7 +503,7 @@
         </Grid>
 
         <!-- Status bar with live system monitor -->
-        <Border Grid.Row="7" Background="{DynamicResource ChromeBg2}" Padding="12,4">
+        <Border Grid.Row="8" Background="{DynamicResource ChromeBg2}" Padding="12,4">
             <Grid>
                 <Grid.ColumnDefinitions>
                     <ColumnDefinition Width="*"/>

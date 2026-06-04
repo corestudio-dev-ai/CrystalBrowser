@@ -120,6 +120,7 @@ public partial class MainWindow : Window
             {
                 _ = CheckForUpdatesAsync(); // first check immediately…
                 _updateTimer.Start();       // …then keep polling every 60s until one is found
+                ShowUnsupportedNagIfNeeded(); // remind end-of-life builds to update (non-blocking)
                 if (!_onboarding) ShowDefaultBrowserNag(); // onboarding has its own "set default" step
             }
         };
@@ -807,6 +808,48 @@ public partial class MainWindow : Window
 
     private void BtnUpdateLater_Click(object sender, RoutedEventArgs e) =>
         UpdateBar.Visibility = Visibility.Collapsed;
+
+    // ----- Unsupported-version nag ----------------------------------------
+    // End-of-life builds (see SupportPolicy) get a persistent reminder to update on
+    // every launch. It never blocks the browser — "Later" just hides it for this
+    // session and it returns next time, so users can keep using the old version.
+
+    private void ShowUnsupportedNagIfNeeded()
+    {
+        if (SupportPolicy.IsUnsupported(Config.Version))
+            UnsupportedBar.Visibility = Visibility.Visible;
+    }
+
+    private async void BtnUnsupportedUpdate_Click(object sender, RoutedEventArgs e)
+    {
+        BtnUnsupportedUpdate.IsEnabled = false;
+        UnsupportedText.Text = "Checking for the latest version…";
+
+        // Use the update the background poller already found, or check right now.
+        var info = _pendingUpdate;
+        if (info == null)
+            info = (await Updater.CheckAsync()).Info;
+
+        if (info == null)
+        {
+            UnsupportedText.Text = "Couldn't reach the update server. Please try again later.";
+            BtnUnsupportedUpdate.IsEnabled = true;
+            return;
+        }
+
+        UnsupportedText.Text = $"Downloading Crystal Browser {info.Version}…";
+        bool ok = await Updater.DownloadAndRunAsync(info);
+        if (ok)
+            Close(); // exit so the installer can replace files
+        else
+        {
+            UnsupportedText.Text = "Update download failed. Please try again later.";
+            BtnUnsupportedUpdate.IsEnabled = true;
+        }
+    }
+
+    private void BtnUnsupportedLater_Click(object sender, RoutedEventArgs e) =>
+        UnsupportedBar.Visibility = Visibility.Collapsed;
 
     // ----- Default-browser nag (Chrome-style) -----------------------------
 

@@ -16,6 +16,10 @@ public static class Changelog
 {
     public static readonly IReadOnlyList<ChangelogEntry> Entries = new[]
     {
+        new ChangelogEntry("1.7.4", new[]
+        {
+            "Older versions (1.0–1.3) are now marked unsupported. If you're on one of those builds, Crystal will gently remind you to update each time it opens — but it never blocks you, and those versions stay fully usable and downloadable.",
+        }),
         new ChangelogEntry("1.7.3.2", new[]
         {
             "Fixed the doubled window buttons for good. Windows was drawing its own minimize/maximize/close buttons on top of Crystal's; the title bar no longer extends the system frame, so only Crystal's own buttons show. The Mica transparency is unchanged.",
