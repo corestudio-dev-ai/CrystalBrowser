@@ -505,7 +505,31 @@
                                     Content="&#10005;" Click="BtnAiClose_Click" ToolTip="Close sidebar"/>
                         </Grid>
                     </Border>
-                    <Grid x:Name="AiHost" Background="{DynamicResource WindowBg}"/>
+                    <Grid x:Name="AiHost" Background="{DynamicResource WindowBg}">
+                        <!-- Shown instead of the web view when Claude is selected but the user
+                             isn't signed in to claude.ai yet (WebView2 paints over WPF, so we
+                             collapse the view rather than overlay this). -->
+                        <Border x:Name="AiNotice" Visibility="Collapsed" Padding="28"
+                                VerticalAlignment="Center" HorizontalAlignment="Center">
+                            <StackPanel MaxWidth="320">
+                                <TextBlock Text="&#xE72E;" FontFamily="Segoe MDL2 Assets" FontSize="30"
+                                           Foreground="{DynamicResource AccentBrush}" HorizontalAlignment="Center"/>
+                                <TextBlock Text="Sign in to use Claude" FontSize="18" FontWeight="SemiBold"
+                                           Foreground="{DynamicResource TextPrimary}" HorizontalAlignment="Center"
+                                           Margin="0,12,0,0"/>
+                                <TextBlock TextWrapping="Wrap" TextAlignment="Center" FontSize="13"
+                                           Foreground="{DynamicResource TextMuted}" Margin="0,8,0,0"
+                                           Text="Claude needs you to sign in first. Open claude.ai in a tab and sign in with your Claude account — then Claude becomes available here in the sidebar."/>
+                                <Button x:Name="BtnOpenClaude" Content="Open claude.ai to sign in"
+                                        Click="BtnOpenClaude_Click" Cursor="Hand" Foreground="#ffffff"
+                                        Background="{DynamicResource AccentBrush}" BorderThickness="0"
+                                        Padding="16,9" FontSize="13" Margin="0,18,0,0"/>
+                                <Button x:Name="BtnRecheckClaude" Content="I've signed in — try again"
+                                        Click="BtnRecheckClaude_Click" Style="{StaticResource IconBtn}"
+                                        Width="Auto" Height="Auto" Padding="12,7" Margin="0,8,0,0"/>
+                            </StackPanel>
+                        </Border>
+                    </Grid>
                 </DockPanel>
             </Border>
         </Grid>

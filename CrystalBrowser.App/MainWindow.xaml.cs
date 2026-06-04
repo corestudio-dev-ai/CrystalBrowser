@@ -854,15 +854,17 @@ public partial class MainWindow : Window
 
     // ----- AI companion sidebar (Gemini / Claude / ChatGPT) ---------------
 
-    // The selectable AI companions: key -> (display name, web app URL).
+    // The selectable AI companions, in sidebar order: key -> (display name, web app URL).
+    // Gemini is first; Claude is last because it needs a prior sign-in (see below).
     private static readonly (string Key, string Name, string Url)[] AiCompanions =
     {
-        ("claude",  "Claude",  "https://claude.ai/new"),
         ("gemini",  "Gemini",  "https://gemini.google.com/app"),
         ("chatgpt", "ChatGPT", "https://chatgpt.com/"),
+        ("claude",  "Claude",  "https://claude.ai/new"),
     };
 
-    private WebView2? _aiView; // created lazily the first time the sidebar opens
+    private WebView2? _aiView;      // created lazily the first time the sidebar opens
+    private bool _claudeUnlocked;   // cached: is the user signed in to claude.ai in this profile?
 
     private void BtnAi_Click(object sender, RoutedEventArgs e) => ToggleAiSidebar();
     private void BtnAiClose_Click(object sender, RoutedEventArgs e) => AiSidebar.Visibility = Visibility.Collapsed;
@@ -875,12 +877,12 @@ public partial class MainWindow : Window
             return;
         }
         AiSidebar.Visibility = Visibility.Visible;
-        RenderAiPicker();
+        await RefreshClaudeLockAsync();   // know whether Claude is usable before we render/navigate
         await EnsureAiViewAsync();
+        ShowSelectedAi();
     }
 
-    // Create the sidebar's own WebView2 (sharing the active profile, so AI logins persist) and
-    // point it at the chosen companion the first time the sidebar is opened.
+    // Create the sidebar's own WebView2 (sharing the active profile, so AI logins persist).
     private async Task EnsureAiViewAsync()
     {
         if (_aiView != null) return;
@@ -891,7 +893,41 @@ public partial class MainWindow : Window
         await _aiView.EnsureCoreWebView2Async(await GetEnvironmentAsync());
         // Open links the AI surfaces in a normal browser tab rather than a nested popup.
         _aiView.CoreWebView2.NewWindowRequested += (_, e) => { e.Handled = true; AddNewTab(url: e.Uri); };
+    }
+
+    // Is there a Claude session cookie in this profile? (Claude's auth cookie is "sessionKey".)
+    private async Task<bool> IsClaudeSignedInAsync()
+    {
+        try
+        {
+            var core = _aiView?.CoreWebView2 ?? Current?.CoreWebView2;
+            if (core == null) return false;
+            var cookies = await core.CookieManager.GetCookiesAsync("https://claude.ai");
+            return cookies.Any(c => c.Name.Contains("sessionKey", StringComparison.OrdinalIgnoreCase));
+        }
+        catch { return false; }
+    }
+
+    private async Task RefreshClaudeLockAsync()
+    {
+        _claudeUnlocked = await IsClaudeSignedInAsync();
+        RenderAiPicker();
+    }
+
+    // Show either the chosen AI's web view, or the "sign in to Claude" notice when Claude is
+    // selected but locked.
+    private void ShowSelectedAi()
+    {
+        var key = SettingsStore.Current.AiCompanion;
+        if (key == "claude" && !_claudeUnlocked) { ShowClaudeNotice(true); return; }
+        ShowClaudeNotice(false);
         NavigateAi();
+    }
+
+    private void ShowClaudeNotice(bool show)
+    {
+        AiNotice.Visibility = show ? Visibility.Visible : Visibility.Collapsed;
+        if (_aiView != null) _aiView.Visibility = show ? Visibility.Collapsed : Visibility.Visible;
     }
 
     private void NavigateAi()
@@ -901,15 +937,35 @@ public partial class MainWindow : Window
         _aiView?.CoreWebView2?.Navigate(url);
     }
 
-    private void SetAi(string key)
+    private async void SetAi(string key)
     {
+        // Claude is gated behind a prior sign-in: if it's locked, gently prompt instead of
+        // dropping the user onto Claude's sign-in page, and don't switch to it.
+        if (key == "claude")
+        {
+            await RefreshClaudeLockAsync();
+            if (!_claudeUnlocked) { ShowClaudeNotice(true); return; }
+        }
         SettingsStore.Current.AiCompanion = key;
         SettingsStore.Save();
         RenderAiPicker();
+        await EnsureAiViewAsync();
+        ShowClaudeNotice(false);
         NavigateAi();
     }
 
-    // Rebuild the little Gemini / Claude / ChatGPT switcher, highlighting the active one.
+    private void BtnOpenClaude_Click(object sender, RoutedEventArgs e) =>
+        AddNewTab(url: "https://claude.ai/login");
+
+    private async void BtnRecheckClaude_Click(object sender, RoutedEventArgs e)
+    {
+        await RefreshClaudeLockAsync();
+        if (_claudeUnlocked) SetAi("claude"); // now signed in — switch to Claude for real
+        // still locked: leave the notice up so they can finish signing in.
+    }
+
+    // Rebuild the Gemini / ChatGPT / Claude switcher. Claude is dimmed and not selectable as the
+    // active chip until the user is signed in; clicking it then shows the sign-in notice.
     private void RenderAiPicker()
     {
         AiPicker.Children.Clear();
@@ -917,14 +973,16 @@ public partial class MainWindow : Window
         var accent = (Brush)Resources["AccentBrush"];
         foreach (var (key, name, _) in AiCompanions)
         {
-            bool on = key == active;
+            bool locked = key == "claude" && !_claudeUnlocked;
+            bool on = key == active && !locked;
             var btn = new Button
             {
                 Content = name, Cursor = Cursors.Hand, FontSize = 13,
                 Foreground = on ? Brushes.White : (Brush)Resources["TabTextInactive"],
                 Background = on ? accent : Brushes.Transparent,
                 BorderThickness = new Thickness(0), Padding = new Thickness(12, 6, 12, 6),
-                Margin = new Thickness(0, 0, 6, 0),
+                Margin = new Thickness(0, 0, 6, 0), Opacity = locked ? 0.5 : 1.0,
+                ToolTip = locked ? "Sign in to Claude first to use it here" : null,
                 Template = (ControlTemplate)FindResource("AiChipTemplate")
             };
             btn.Click += (_, _) => SetAi(key);
