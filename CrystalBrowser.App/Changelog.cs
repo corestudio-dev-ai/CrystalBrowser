@@ -16,9 +16,9 @@ public static class Changelog
 {
     public static readonly IReadOnlyList<ChangelogEntry> Entries = new[]
     {
-        new ChangelogEntry("1.7.2", new[]
+        new ChangelogEntry("1.7.3", new[]
         {
-            "Fixed the minimize, maximize, and close buttons in the title bar looking broken — the glyphs picked up colour fringing from the transparent window backdrop and now render cleanly.",
+            "Properly fixed the minimize, maximize, and close buttons in the title bar. They're now drawn as crisp vector icons instead of font glyphs, so they no longer pick up colour fringing from the transparent window backdrop.",
         }),
         new ChangelogEntry("1.7", new[]
         {

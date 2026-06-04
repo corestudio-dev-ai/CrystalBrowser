@@ -35,13 +35,7 @@
         <Style TargetType="Button" x:Key="CaptionBtn">
             <Setter Property="Width" Value="44"/>
             <Setter Property="Height" Value="30"/>
-            <Setter Property="FontFamily" Value="Segoe MDL2 Assets"/>
-            <Setter Property="FontSize" Value="10"/>
             <Setter Property="Cursor" Value="Hand"/>
-            <!-- Grayscale rendering avoids ClearType colour fringing on the
-                 transparent / Mica backdrop, which made the glyphs look broken. -->
-            <Setter Property="TextOptions.TextRenderingMode" Value="Grayscale"/>
-            <Setter Property="TextOptions.TextFormattingMode" Value="Ideal"/>
             <Setter Property="Foreground" Value="{DynamicResource TextMuted}"/>
             <Setter Property="shell:WindowChrome.IsHitTestVisibleInChrome" Value="True"/>
             <Setter Property="Template">
@@ -214,12 +208,23 @@
             </Border>
 
             <StackPanel Grid.Column="3" Orientation="Horizontal" VerticalAlignment="Top">
-                <Button x:Name="BtnMin" Style="{StaticResource CaptionBtn}" Content="&#xE921;"
-                        Click="BtnMin_Click" ToolTip="Minimize"/>
-                <Button x:Name="BtnMax" Style="{StaticResource MaxBtn}" Content="&#xE922;"
-                        Click="BtnMax_Click" ToolTip="Maximize"/>
-                <Button x:Name="BtnClose" Style="{StaticResource CloseBtn}" Content="&#xE8BB;"
-                        Click="BtnClose_Click" ToolTip="Close"/>
+                <!-- Vector glyphs (not icon-font text) so they anti-alias cleanly on the
+                     transparent Mica backdrop instead of picking up ClearType colour fringing. -->
+                <Button x:Name="BtnMin" Style="{StaticResource CaptionBtn}"
+                        Click="BtnMin_Click" ToolTip="Minimize">
+                    <Path Data="M0,0 H10" StrokeThickness="1" SnapsToDevicePixels="True"
+                          Stroke="{Binding Foreground, RelativeSource={RelativeSource AncestorType=Button}}"/>
+                </Button>
+                <Button x:Name="BtnMax" Style="{StaticResource MaxBtn}"
+                        Click="BtnMax_Click" ToolTip="Maximize">
+                    <Rectangle Width="10" Height="10" StrokeThickness="1" SnapsToDevicePixels="True"
+                               Stroke="{Binding Foreground, RelativeSource={RelativeSource AncestorType=Button}}"/>
+                </Button>
+                <Button x:Name="BtnClose" Style="{StaticResource CloseBtn}"
+                        Click="BtnClose_Click" ToolTip="Close">
+                    <Path Data="M0,0 L10,10 M10,0 L0,10" StrokeThickness="1" SnapsToDevicePixels="True"
+                          Stroke="{Binding Foreground, RelativeSource={RelativeSource AncestorType=Button}}"/>
+                </Button>
             </StackPanel>
         </Grid>
 
