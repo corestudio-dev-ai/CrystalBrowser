@@ -852,6 +852,86 @@ public partial class MainWindow : Window
         _active.View.CoreWebView2?.NavigateToString(SettingsPage.Html(SettingsStore.Current.Theme));
     }
 
+    // ----- AI companion sidebar (Gemini / Claude / ChatGPT) ---------------
+
+    // The selectable AI companions: key -> (display name, web app URL).
+    private static readonly (string Key, string Name, string Url)[] AiCompanions =
+    {
+        ("claude",  "Claude",  "https://claude.ai/new"),
+        ("gemini",  "Gemini",  "https://gemini.google.com/app"),
+        ("chatgpt", "ChatGPT", "https://chatgpt.com/"),
+    };
+
+    private WebView2? _aiView; // created lazily the first time the sidebar opens
+
+    private void BtnAi_Click(object sender, RoutedEventArgs e) => ToggleAiSidebar();
+    private void BtnAiClose_Click(object sender, RoutedEventArgs e) => AiSidebar.Visibility = Visibility.Collapsed;
+
+    private async void ToggleAiSidebar()
+    {
+        if (AiSidebar.Visibility == Visibility.Visible)
+        {
+            AiSidebar.Visibility = Visibility.Collapsed;
+            return;
+        }
+        AiSidebar.Visibility = Visibility.Visible;
+        RenderAiPicker();
+        await EnsureAiViewAsync();
+    }
+
+    // Create the sidebar's own WebView2 (sharing the active profile, so AI logins persist) and
+    // point it at the chosen companion the first time the sidebar is opened.
+    private async Task EnsureAiViewAsync()
+    {
+        if (_aiView != null) return;
+        _aiView = new WebView2();
+        AiHost.Children.Add(_aiView);
+        var wc = (Color)ColorConverter.ConvertFromString(Theme.Get(SettingsStore.Current.Theme).WindowBg);
+        _aiView.DefaultBackgroundColor = System.Drawing.Color.FromArgb(0xFF, wc.R, wc.G, wc.B);
+        await _aiView.EnsureCoreWebView2Async(await GetEnvironmentAsync());
+        // Open links the AI surfaces in a normal browser tab rather than a nested popup.
+        _aiView.CoreWebView2.NewWindowRequested += (_, e) => { e.Handled = true; AddNewTab(url: e.Uri); };
+        NavigateAi();
+    }
+
+    private void NavigateAi()
+    {
+        var url = AiCompanions.FirstOrDefault(a => a.Key == SettingsStore.Current.AiCompanion).Url
+                  ?? AiCompanions[0].Url;
+        _aiView?.CoreWebView2?.Navigate(url);
+    }
+
+    private void SetAi(string key)
+    {
+        SettingsStore.Current.AiCompanion = key;
+        SettingsStore.Save();
+        RenderAiPicker();
+        NavigateAi();
+    }
+
+    // Rebuild the little Gemini / Claude / ChatGPT switcher, highlighting the active one.
+    private void RenderAiPicker()
+    {
+        AiPicker.Children.Clear();
+        var active = SettingsStore.Current.AiCompanion;
+        var accent = (Brush)Resources["AccentBrush"];
+        foreach (var (key, name, _) in AiCompanions)
+        {
+            bool on = key == active;
+            var btn = new Button
+            {
+                Content = name, Cursor = Cursors.Hand, FontSize = 13,
+                Foreground = on ? Brushes.White : (Brush)Resources["TabTextInactive"],
+                Background = on ? accent : Brushes.Transparent,
+                BorderThickness = new Thickness(0), Padding = new Thickness(12, 6, 12, 6),
+                Margin = new Thickness(0, 0, 6, 0),
+                Template = (ControlTemplate)FindResource("AiChipTemplate")
+            };
+            btn.Click += (_, _) => SetAi(key);
+            AiPicker.Children.Add(btn);
+        }
+    }
+
     // ----- Edit mode (document.designMode) --------------------------------
 
     private async void BtnEdit_Click(object sender, RoutedEventArgs e)

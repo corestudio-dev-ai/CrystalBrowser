@@ -197,6 +197,18 @@
             <Setter Property="FontSize" Value="11"/>
             <Setter Property="Foreground" Value="#9a98c0"/>
         </Style>
+
+        <!-- Rounded "chip" used by the AI companion switcher (Gemini / Claude / ChatGPT). -->
+        <ControlTemplate x:Key="AiChipTemplate" TargetType="Button">
+            <Border x:Name="b" CornerRadius="9" Background="{TemplateBinding Background}">
+                <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
+            </Border>
+            <ControlTemplate.Triggers>
+                <Trigger Property="IsMouseOver" Value="True">
+                    <Setter TargetName="b" Property="Opacity" Value="0.85"/>
+                </Trigger>
+            </ControlTemplate.Triggers>
+        </ControlTemplate>
     </Window.Resources>
 
     <!-- Neon rainbow window frame: a 2px animated multi-colour border around everything. -->
@@ -347,6 +359,8 @@
                     <Button x:Name="BtnPrivate" Style="{StaticResource IconBtn}" Content="&#xE7B3;"
                             FontFamily="Segoe MDL2 Assets" FontSize="14"
                             Click="BtnPrivate_Click" ToolTip="New Incognito window" Margin="2,0,0,0"/>
+                    <Button x:Name="BtnAi" Style="{StaticResource IconBtn}" Content="&#9728;"
+                            Click="BtnAi_Click" ToolTip="AI companion sidebar" Margin="2,0,0,0"/>
                     <Button x:Name="BtnSettings" Style="{StaticResource IconBtn}" Content="&#9881;"
                             Click="BtnSettings_Click" ToolTip="Settings &amp; About" Margin="2,0,0,0"/>
                 </StackPanel>
@@ -430,11 +444,12 @@
             </Grid>
         </Border>
 
-        <!-- Body: vertical tab sidebar on the left, web content on the right -->
+        <!-- Body: vertical tab sidebar (left), web content (centre), AI companion (right) -->
         <Grid Grid.Row="6">
             <Grid.ColumnDefinitions>
                 <ColumnDefinition Width="Auto"/>
                 <ColumnDefinition Width="*"/>
+                <ColumnDefinition Width="Auto"/>
             </Grid.ColumnDefinitions>
 
             <!-- Vertical tab rail with a fluid neon light that trails the cursor. -->
@@ -473,6 +488,26 @@
 
             <!-- Content host (single WebView swapped per active tab) -->
             <Grid x:Name="BrowserHost" Grid.Column="1" Background="{DynamicResource WindowBg}"/>
+
+            <!-- AI companion sidebar (Gemini / Claude / ChatGPT), like Edge Copilot. Hidden by
+                 default; its own WebView2 is created lazily the first time it's opened. -->
+            <Border x:Name="AiSidebar" Grid.Column="2" Width="392" Visibility="Collapsed"
+                    Background="{DynamicResource ChromeBg2}" BorderBrush="#262445" BorderThickness="1,0,0,0">
+                <DockPanel>
+                    <Border DockPanel.Dock="Top" Background="{DynamicResource ChromeBg}" Padding="8,6">
+                        <Grid>
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*"/>
+                                <ColumnDefinition Width="Auto"/>
+                            </Grid.ColumnDefinitions>
+                            <StackPanel x:Name="AiPicker" Grid.Column="0" Orientation="Horizontal"/>
+                            <Button x:Name="BtnAiClose" Grid.Column="1" Style="{StaticResource IconBtn}"
+                                    Content="&#10005;" Click="BtnAiClose_Click" ToolTip="Close sidebar"/>
+                        </Grid>
+                    </Border>
+                    <Grid x:Name="AiHost" Background="{DynamicResource WindowBg}"/>
+                </DockPanel>
+            </Border>
         </Grid>
 
         <!-- Status bar with live system monitor -->

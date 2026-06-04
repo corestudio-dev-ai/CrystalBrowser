@@ -24,6 +24,9 @@ public class AppSettings
     /// <summary>Search engine key: "google" (default) or "duckduckgo".</summary>
     public string SearchEngine { get; set; } = "google";
 
+    /// <summary>AI companion shown in the sidebar: "claude" (default), "gemini" or "chatgpt".</summary>
+    public string AiCompanion { get; set; } = "claude";
+
     /// <summary>Name of the active Crystal profile.</summary>
     public string ActiveProfile { get; set; } = "Default";
 
