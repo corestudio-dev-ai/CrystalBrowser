@@ -165,6 +165,12 @@ public static class SettingsPage
   </div>
 
   <div class="card">
+    <h2>What's new</h2>
+    <style>{{Changelog.Css}}</style>
+    {{Changelog.EntriesHtml(Version)}}
+  </div>
+
+  <div class="card">
     <h2>About</h2>
     <div class="row"><span class="k">Version</span><span class="v">{{Version}}</span></div>
     <div class="row"><span class="k">Engine</span><span class="v">WebView2 (Chromium)</span></div>

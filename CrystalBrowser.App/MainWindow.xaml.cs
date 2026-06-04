@@ -94,10 +94,20 @@ public partial class MainWindow : Window
             // First launch (a normal window, no link handed to us): run the onboarding flow.
             bool firstRun = !_incognito && !SettingsStore.Current.OnboardingDone
                             && string.IsNullOrWhiteSpace(_initialUrl);
+            // Returning user who just updated: show the in-app changelog ("What's new").
+            bool whatsNew = !_incognito && !firstRun && SettingsStore.Current.OnboardingDone
+                            && SettingsStore.Current.LastSeenVersion != Config.Version
+                            && string.IsNullOrWhiteSpace(_initialUrl);
             if (firstRun)
             {
                 _onboarding = true;
                 AddNewTab(onboarding: true);
+            }
+            else if (whatsNew)
+            {
+                AddNewTab(whatsNew: true);
+                SettingsStore.Current.LastSeenVersion = Config.Version; // seen — don't show again
+                SettingsStore.Save();
             }
             else if (!string.IsNullOrWhiteSpace(_initialUrl))
                 AddNewTab(url: _initialUrl);
@@ -308,6 +318,7 @@ public partial class MainWindow : Window
                 break;
             case "finishOnboarding":
                 s.OnboardingDone = true;
+                s.LastSeenVersion = Config.Version; // new users start current — no "what's new" next launch
                 SettingsStore.Save();
                 _onboarding = false;
                 if (_active != null) GoHome(_active);
@@ -397,7 +408,7 @@ public partial class MainWindow : Window
         return null;
     }
 
-    private void AddNewTab(bool home = false, string? url = null, bool onboarding = false)
+    private void AddNewTab(bool home = false, string? url = null, bool onboarding = false, bool whatsNew = false)
     {
         var web = new WebView2 { Visibility = Visibility.Collapsed };
         BrowserHost.Children.Add(web);
@@ -432,7 +443,7 @@ public partial class MainWindow : Window
         close.Click += (s, e) => { e.Handled = true; CloseTab(tab); };
 
         Activate(tab);
-        InitWebView(tab, home, url, onboarding);
+        InitWebView(tab, home, url, onboarding, whatsNew);
     }
 
     private void CloseTab(BrowserTab tab)
@@ -541,7 +552,7 @@ public partial class MainWindow : Window
 
     private bool IsLight => Theme.IsLight(SettingsStore.Current.Theme);
 
-    private async void InitWebView(BrowserTab tab, bool home, string? url, bool onboarding = false)
+    private async void InitWebView(BrowserTab tab, bool home, string? url, bool onboarding = false, bool whatsNew = false)
     {
         var web = tab.View;
         // Themed canvas behind every page so navigations don't flash a contrasting colour.
@@ -594,6 +605,12 @@ public partial class MainWindow : Window
             tab.IsHome = false;
             tab.Title.Text = "Welcome to Crystal";
             core.NavigateToString(Onboarding.Html(SettingsStore.Current.Theme));
+        }
+        else if (whatsNew)
+        {
+            tab.IsHome = false;
+            tab.Title.Text = "What's new";
+            core.NavigateToString(ChangelogPage.Html(SettingsStore.Current.Theme, Config.Version));
         }
         else if (home || url == null)
             GoHome(tab);

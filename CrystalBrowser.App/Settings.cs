@@ -32,6 +32,10 @@ public class AppSettings
 
     /// <summary>True once the first-run onboarding flow has been completed (or skipped).</summary>
     public bool OnboardingDone { get; set; } = false;
+
+    /// <summary>The app version whose "what's new" changelog the user has already seen. When this
+    /// differs from <see cref="Config.Version"/> after an update, Crystal shows the changelog.</summary>
+    public string LastSeenVersion { get; set; } = "";
 }
 
 /// <summary>Loads and saves the single shared <see cref="AppSettings"/> instance.</summary>
