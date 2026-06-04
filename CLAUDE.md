@@ -25,6 +25,18 @@ dotnet publish CrystalBrowser.App -c Release -r win-x64 --self-contained `
 
 There are no tests, linter, or CI configured. The only runtime requirement is the Microsoft Edge WebView2 Runtime (the installer fetches it if absent).
 
+## Version numbering
+
+Crystal uses a custom scheme: **every version segment below the minor caps at `4`** — there is no `.5` or higher at the patch level or deeper. When the deepest segment is already at `4` and you need another release, you do **not** go to `.5`; you roll that segment over and carry up to the segment on its left. The minor version itself increments freely (`1.7 → 1.8 → 1.9 → …`).
+
+In practice:
+
+- `1.7 → 1.7.1 → 1.7.2 → 1.7.3 → 1.7.4` — `1.7.4` is the **last** release in the `1.7.x` line.
+- The next release after `1.7.4` is **`1.8`** (not `1.7.5`), and the cycle continues (`1.8.1`, `1.8.2`, …).
+- The carry applies at **any depth**: e.g. `1.7.4.1 → 1.7.4.2 → 1.7.4.3 → 1.7.4.4`, and the next release after `1.7.4.4` rolls all the maxed segments up to **`1.8`**.
+
+So `4` is the highest value any sub-minor segment ever takes; hitting it means the next bump moves up a level. Apply this whenever you pick the next version number in step 2 below.
+
 ## Release workflow
 
 When asked to cut a release, do these steps **in order** (the descriptions matter — releases must always ship with proper, human-readable notes):
