@@ -16,9 +16,9 @@ public static class Changelog
 {
     public static readonly IReadOnlyList<ChangelogEntry> Entries = new[]
     {
-        new ChangelogEntry("1.7.3.1", new[]
+        new ChangelogEntry("1.7.3.2", new[]
         {
-            "Really fixed the title-bar minimize, maximize, and close buttons. They are now drawn as crisp vector icons inside the button itself, so they always render and no longer show the doubled/fringed look from the previous builds.",
+            "Fixed the doubled window buttons for good. Windows was drawing its own minimize/maximize/close buttons on top of Crystal's; the title bar no longer extends the system frame, so only Crystal's own buttons show. The Mica transparency is unchanged.",
         }),
         new ChangelogEntry("1.7", new[]
         {

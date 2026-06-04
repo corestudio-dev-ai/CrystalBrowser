@@ -7,8 +7,12 @@
         UseLayoutRounding="True" TextOptions.TextFormattingMode="Display"
         SourceInitialized="Window_SourceInitialized">
     <shell:WindowChrome.WindowChrome>
+        <!-- GlassFrameThickness="0": do NOT extend the DWM glass frame into the window.
+             A non-zero glass frame makes Windows 11 paint its own (native) caption
+             buttons in the top-right, which doubled up with our custom ones. Mica still
+             renders via the DWMWA_SYSTEMBACKDROP_TYPE call in Window_SourceInitialized. -->
         <shell:WindowChrome CaptionHeight="40" CornerRadius="0"
-                            GlassFrameThickness="-1" ResizeBorderThickness="6"
+                            GlassFrameThickness="0" ResizeBorderThickness="6"
                             UseAeroCaptionButtons="False"/>
     </shell:WindowChrome.WindowChrome>
     <Window.Resources>
