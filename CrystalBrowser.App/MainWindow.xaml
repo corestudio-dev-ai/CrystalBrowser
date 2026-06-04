@@ -3,134 +3,78 @@
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:shell="clr-namespace:System.Windows.Shell;assembly=PresentationFramework"
         Title="Crystal Browser" Height="700" Width="1024" MinHeight="420" MinWidth="640"
-        Background="{DynamicResource WindowBg}" WindowStartupLocation="CenterScreen"
-        UseLayoutRounding="True" TextOptions.TextFormattingMode="Display">
+        Background="Transparent" WindowStartupLocation="CenterScreen"
+        UseLayoutRounding="True" TextOptions.TextFormattingMode="Display"
+        SourceInitialized="Window_SourceInitialized">
     <shell:WindowChrome.WindowChrome>
         <shell:WindowChrome CaptionHeight="40" CornerRadius="0"
-                            GlassFrameThickness="0" ResizeBorderThickness="6"
+                            GlassFrameThickness="-1" ResizeBorderThickness="6"
                             UseAeroCaptionButtons="False"/>
     </shell:WindowChrome.WindowChrome>
     <Window.Resources>
 
-        <!-- Accent colour (themed live from Settings). -->
-        <SolidColorBrush x:Key="AccentBrush" Color="#7C6CFF"/>
+        <!-- Accent colour (themed live from Settings). Calm indigo (1.7 redesign). -->
+        <SolidColorBrush x:Key="AccentBrush" Color="#4F6BFF"/>
+        <!-- Window frame border colour (user-changeable via Settings). -->
+        <SolidColorBrush x:Key="FrameBrush" Color="#4F6BFF"/>
 
-        <!-- Theme surfaces (dark defaults; swapped live by ApplyTheme). -->
-        <SolidColorBrush x:Key="WindowBg" Color="#0e0d1c"/>
-        <SolidColorBrush x:Key="ChromeBg" Color="#1b1933"/>
-        <SolidColorBrush x:Key="ChromeBg2" Color="#13122a"/>
-        <SolidColorBrush x:Key="SurfaceBg" Color="#0f0e22"/>
-        <SolidColorBrush x:Key="TextPrimary" Color="#f0efff"/>
-        <SolidColorBrush x:Key="TextMuted" Color="#7e7ba6"/>
+        <!-- Theme surfaces (dark defaults; swapped live by ApplyTheme).
+             Slight alpha lets the Win11 Mica backdrop show through the chrome. -->
+        <SolidColorBrush x:Key="WindowBg" Color="#0d1018"/>
+        <SolidColorBrush x:Key="ChromeBg" Color="#161a24"/>
+        <SolidColorBrush x:Key="ChromeBg2" Color="#11141d"/>
+        <SolidColorBrush x:Key="SurfaceBg" Color="#1a1e2a"/>
+        <SolidColorBrush x:Key="TextPrimary" Color="#eef1f8"/>
+        <SolidColorBrush x:Key="TextMuted" Color="#8b90a3"/>
         <SolidColorBrush x:Key="TabTextActive" Color="#ffffff"/>
-        <SolidColorBrush x:Key="TabTextInactive" Color="#b9b7da"/>
-        <SolidColorBrush x:Key="TabActiveBg" Color="#1b1933"/>
+        <SolidColorBrush x:Key="TabTextInactive" Color="#b3b8c7"/>
+        <SolidColorBrush x:Key="TabActiveBg" Color="#222735"/>
 
-        <!-- Window caption buttons (minimize / maximize / close) — fully neon-redesigned.
-             Even at rest each button is a glowing, neon-tinted pill with a coloured glyph;
-             hovering just intensifies its own hue (cyan / violet / pink). -->
+        <!-- Window caption buttons (minimize / maximize / close) — flat, restrained (1.7).
+             Subtle hover; close goes red. No neon, no glow. -->
         <Style TargetType="Button" x:Key="CaptionBtn">
-            <Setter Property="Width" Value="42"/>
-            <Setter Property="Height" Value="28"/>
+            <Setter Property="Width" Value="44"/>
+            <Setter Property="Height" Value="30"/>
             <Setter Property="FontFamily" Value="Segoe MDL2 Assets"/>
             <Setter Property="FontSize" Value="10"/>
             <Setter Property="Cursor" Value="Hand"/>
+            <Setter Property="Foreground" Value="{DynamicResource TextMuted}"/>
             <Setter Property="shell:WindowChrome.IsHitTestVisibleInChrome" Value="True"/>
-            <!-- Minimize: neon cyan -->
-            <Setter Property="Foreground" Value="#7DF9FF"/>
-            <Setter Property="Effect">
-                <Setter.Value>
-                    <DropShadowEffect Color="#00E5FF" BlurRadius="8" ShadowDepth="0" Opacity="0.55"/>
-                </Setter.Value>
-            </Setter>
             <Setter Property="Template">
                 <Setter.Value>
                     <ControlTemplate TargetType="Button">
-                        <Border x:Name="b" Background="#1400E5FF" BorderBrush="#5500E5FF" BorderThickness="1"
-                                CornerRadius="8" Margin="3,4">
+                        <Border x:Name="b" Background="Transparent" CornerRadius="7" Margin="2,4">
                             <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
                         </Border>
                         <ControlTemplate.Triggers>
                             <Trigger Property="IsMouseOver" Value="True">
-                                <Setter TargetName="b" Property="Background" Value="#3300E5FF"/>
-                                <Setter TargetName="b" Property="BorderBrush" Value="#00E5FF"/>
-                                <Setter Property="Foreground" Value="#CFFFFF"/>
-                                <Setter Property="Effect">
-                                    <Setter.Value>
-                                        <DropShadowEffect Color="#00E5FF" BlurRadius="18" ShadowDepth="0" Opacity="1"/>
-                                    </Setter.Value>
-                                </Setter>
+                                <Setter TargetName="b" Property="Background" Value="#22FFFFFF"/>
+                                <Setter Property="Foreground" Value="{DynamicResource TextPrimary}"/>
                             </Trigger>
                             <Trigger Property="IsPressed" Value="True">
-                                <Setter TargetName="b" Property="Background" Value="#5500E5FF"/>
+                                <Setter TargetName="b" Property="Background" Value="#11FFFFFF"/>
                             </Trigger>
                         </ControlTemplate.Triggers>
                     </ControlTemplate>
                 </Setter.Value>
             </Setter>
         </Style>
-        <!-- Maximize: neon violet -->
-        <Style TargetType="Button" x:Key="MaxBtn" BasedOn="{StaticResource CaptionBtn}">
-            <Setter Property="Foreground" Value="#D6BBFF"/>
-            <Setter Property="Effect">
-                <Setter.Value>
-                    <DropShadowEffect Color="#B388FF" BlurRadius="8" ShadowDepth="0" Opacity="0.55"/>
-                </Setter.Value>
-            </Setter>
-            <Setter Property="Template">
-                <Setter.Value>
-                    <ControlTemplate TargetType="Button">
-                        <Border x:Name="b" Background="#14B388FF" BorderBrush="#55B388FF" BorderThickness="1"
-                                CornerRadius="8" Margin="3,4">
-                            <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
-                        </Border>
-                        <ControlTemplate.Triggers>
-                            <Trigger Property="IsMouseOver" Value="True">
-                                <Setter TargetName="b" Property="Background" Value="#33B388FF"/>
-                                <Setter TargetName="b" Property="BorderBrush" Value="#B388FF"/>
-                                <Setter Property="Foreground" Value="#F1E8FF"/>
-                                <Setter Property="Effect">
-                                    <Setter.Value>
-                                        <DropShadowEffect Color="#B388FF" BlurRadius="18" ShadowDepth="0" Opacity="1"/>
-                                    </Setter.Value>
-                                </Setter>
-                            </Trigger>
-                            <Trigger Property="IsPressed" Value="True">
-                                <Setter TargetName="b" Property="Background" Value="#55B388FF"/>
-                            </Trigger>
-                        </ControlTemplate.Triggers>
-                    </ControlTemplate>
-                </Setter.Value>
-            </Setter>
-        </Style>
-        <!-- Close: neon pink -->
+        <Style TargetType="Button" x:Key="MaxBtn" BasedOn="{StaticResource CaptionBtn}"/>
+        <!-- Close: neutral until hovered, then red. -->
         <Style TargetType="Button" x:Key="CloseBtn" BasedOn="{StaticResource CaptionBtn}">
-            <Setter Property="Foreground" Value="#FF8FB8"/>
-            <Setter Property="Effect">
-                <Setter.Value>
-                    <DropShadowEffect Color="#FF3D7E" BlurRadius="8" ShadowDepth="0" Opacity="0.6"/>
-                </Setter.Value>
-            </Setter>
             <Setter Property="Template">
                 <Setter.Value>
                     <ControlTemplate TargetType="Button">
-                        <Border x:Name="b" Background="#14FF3D7E" BorderBrush="#55FF3D7E" BorderThickness="1"
-                                CornerRadius="8" Margin="3,4">
+                        <Border x:Name="b" Background="Transparent" CornerRadius="7" Margin="2,4">
                             <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
                         </Border>
                         <ControlTemplate.Triggers>
                             <Trigger Property="IsMouseOver" Value="True">
-                                <Setter TargetName="b" Property="Background" Value="#33FF3D7E"/>
-                                <Setter TargetName="b" Property="BorderBrush" Value="#FF3D7E"/>
+                                <Setter TargetName="b" Property="Background" Value="#E81123"/>
                                 <Setter Property="Foreground" Value="#FFFFFF"/>
-                                <Setter Property="Effect">
-                                    <Setter.Value>
-                                        <DropShadowEffect Color="#FF3D7E" BlurRadius="20" ShadowDepth="0" Opacity="1"/>
-                                    </Setter.Value>
-                                </Setter>
                             </Trigger>
                             <Trigger Property="IsPressed" Value="True">
-                                <Setter TargetName="b" Property="Background" Value="#66FF3D7E"/>
+                                <Setter TargetName="b" Property="Background" Value="#C50F1F"/>
                             </Trigger>
                         </ControlTemplate.Triggers>
                     </ControlTemplate>
@@ -211,34 +155,10 @@
         </ControlTemplate>
     </Window.Resources>
 
-    <!-- Neon rainbow window frame: a 2px animated multi-colour border around everything. -->
-    <Border x:Name="FrameBorder" BorderThickness="2" Background="{DynamicResource WindowBg}">
-        <Border.BorderBrush>
-            <LinearGradientBrush StartPoint="0,0" EndPoint="1,1" SpreadMethod="Repeat">
-                <LinearGradientBrush.RelativeTransform>
-                    <RotateTransform x:Name="FrameRotate" CenterX="0.5" CenterY="0.5" Angle="0"/>
-                </LinearGradientBrush.RelativeTransform>
-                <GradientStop Color="#00E5FF" Offset="0.0"/>
-                <GradientStop Color="#7C4DFF" Offset="0.2"/>
-                <GradientStop Color="#FF3D7E" Offset="0.4"/>
-                <GradientStop Color="#FF6E40" Offset="0.6"/>
-                <GradientStop Color="#FFEA00" Offset="0.8"/>
-                <GradientStop Color="#69F0AE" Offset="1.0"/>
-            </LinearGradientBrush>
-        </Border.BorderBrush>
-        <Border.Triggers>
-            <EventTrigger RoutedEvent="Border.Loaded">
-                <BeginStoryboard>
-                    <Storyboard>
-                        <!-- Slowly rotate the gradient so the neon colours flow around the frame. -->
-                        <DoubleAnimation Storyboard.TargetName="FrameRotate"
-                                         Storyboard.TargetProperty="Angle"
-                                         From="0" To="360" Duration="0:0:8"
-                                         RepeatBehavior="Forever"/>
-                    </Storyboard>
-                </BeginStoryboard>
-            </EventTrigger>
-        </Border.Triggers>
+    <!-- Window frame: a thin, solid, user-colourable border (1.7 redesign — no neon).
+         Background is transparent so the Win11 Mica backdrop shows through bare chrome areas. -->
+    <Border x:Name="FrameBorder" BorderThickness="1" Background="Transparent"
+            BorderBrush="{DynamicResource FrameBrush}">
     <Grid x:Name="RootPadding">
         <Grid.RowDefinitions>
             <RowDefinition Height="Auto"/>  <!-- tab strip -->
@@ -252,7 +172,7 @@
         </Grid.RowDefinitions>
 
         <!-- Title bar: logo + tabs (left), drag area, window controls (right) -->
-        <Grid Grid.Row="0" Background="{DynamicResource WindowBg}">
+        <Grid Grid.Row="0" Background="Transparent">
             <Grid.ColumnDefinitions>
                 <ColumnDefinition Width="Auto"/>
                 <ColumnDefinition Width="Auto"/>
@@ -452,27 +372,10 @@
                 <ColumnDefinition Width="Auto"/>
             </Grid.ColumnDefinitions>
 
-            <!-- Vertical tab rail with a fluid neon light that trails the cursor. -->
+            <!-- Vertical tab rail. -->
             <Border x:Name="TabSidebar" Grid.Column="0" Width="216" Background="{DynamicResource ChromeBg2}"
-                    BorderBrush="#262445" BorderThickness="0,0,1,0" Visibility="Collapsed"
-                    MouseMove="TabRail_MouseMove" MouseLeave="TabRail_MouseLeave">
+                    BorderBrush="#22FFFFFF" BorderThickness="0,0,1,0" Visibility="Collapsed">
                 <Grid ClipToBounds="True">
-                    <!-- Cursor light (animated in code-behind) -->
-                    <Canvas x:Name="CursorLightLayer" IsHitTestVisible="False">
-                        <Ellipse x:Name="CursorLight" Width="220" Height="220" Opacity="0">
-                            <Ellipse.Fill>
-                                <RadialGradientBrush>
-                                    <GradientStop Color="#557C6CFF" Offset="0.0"/>
-                                    <GradientStop Color="#2200E5FF" Offset="0.45"/>
-                                    <GradientStop Color="#0000E5FF" Offset="1.0"/>
-                                </RadialGradientBrush>
-                            </Ellipse.Fill>
-                            <Ellipse.RenderTransform>
-                                <TranslateTransform x:Name="CursorLightMove"/>
-                            </Ellipse.RenderTransform>
-                        </Ellipse>
-                    </Canvas>
-
                     <DockPanel>
                         <Button DockPanel.Dock="Top" Style="{StaticResource IconBtn}" Content="＋  New tab"
                                 Width="Auto" Height="36" HorizontalContentAlignment="Left"

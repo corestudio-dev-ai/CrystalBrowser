@@ -75,19 +75,6 @@ public static class HomePage
     <button class="go" type="submit">&#10148;</button>
   </form>
 
-  <div class="tiles">
-    <a class="tile" href="https://en.wikipedia.org">
-      <img src="https://icons.duckduckgo.com/ip3/en.wikipedia.org.ico" alt="">Wikipedia</a>
-    <a class="tile" href="https://news.ycombinator.com">
-      <img src="https://icons.duckduckgo.com/ip3/news.ycombinator.com.ico" alt="">Hacker News</a>
-    <a class="tile" href="https://github.com">
-      <img src="https://icons.duckduckgo.com/ip3/github.com.ico" alt="">GitHub</a>
-    <a class="tile" href="https://www.google.com">
-      <svg class="ico" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-        <path d="M5 3h14l3 6-10 12L2 9l3-6z" stroke="#b39bff" stroke-width="1.6"
-              stroke-linejoin="round" fill="rgba(124,108,255,.25)"/></svg>Google</a>
-  </div>
-
   <div class="sys">
     <div class="gauge">
       <div class="lab"><span>CPU</span><span id="cpuCores"></span></div>

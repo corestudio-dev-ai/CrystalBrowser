@@ -16,6 +16,15 @@ public static class Changelog
 {
     public static readonly IReadOnlyList<ChangelogEntry> Entries = new[]
     {
+        new ChangelogEntry("1.7", new[]
+        {
+            "A full visual redesign: the neon \"gamer\" look is gone, replaced by a calm indigo accent and a clean, flat interface.",
+            "Window transparency — Crystal now uses the Windows 11 Mica backdrop for a modern, translucent feel.",
+            "Choose your own window frame colour in Settings.",
+            "Redesigned home page and a refreshed welcome flow that announces the version with a smooth animation.",
+            "Reset Crystal: restore all settings to defaults and restart, right from Settings.",
+            "Internal pages: type crystal://whatsnew to revisit this page any time (also crystal://settings and crystal://home).",
+        }),
         new ChangelogEntry("1.6.4", new[]
         {
             "Added an in-app changelog. After each update Crystal shows what's new, and you can review the full history any time from Settings.",

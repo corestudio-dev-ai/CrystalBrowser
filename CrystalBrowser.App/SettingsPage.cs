@@ -112,6 +112,10 @@ public static class SettingsPage
       <div><div class="k">Accent colour</div><div class="sub">Fine-tune the accent on top of your theme.</div></div>
       <div class="swatches" id="swatches"></div>
     </div>
+    <div class="row">
+      <div><div class="k">Window frame</div><div class="sub">Colour of the window's border.</div></div>
+      <div class="swatches" id="frameSwatches"></div>
+    </div>
   </div>
 
   <div class="card">
@@ -166,8 +170,18 @@ public static class SettingsPage
 
   <div class="card">
     <h2>What's new</h2>
-    <style>{{Changelog.Css}}</style>
-    {{Changelog.EntriesHtml(Version)}}
+    <div class="row" style="border:0;">
+      <div><div class="k">Changelog</div><div class="sub">See what changed in each version of Crystal.</div></div>
+      <button class="btn" onclick="send({type:'openChangelog'})">View changelog</button>
+    </div>
+  </div>
+
+  <div class="card">
+    <h2>Reset</h2>
+    <div class="row" style="border:0;">
+      <div><div class="k">Reset Crystal</div><div class="sub">Restore all settings to their defaults and restart. Your bookmarks and history are kept.</div></div>
+      <button class="btn ghost" onclick="resetCrystal()">Reset settings</button>
+    </div>
   </div>
 
   <div class="card">
@@ -179,13 +193,19 @@ public static class SettingsPage
   </div>
 </div>
 <script>
-  var ACCENTS = ['#7C6CFF','#00E5FF','#FF3D7E','#69F0AE','#FF6E40','#FFD166'];
+  var ACCENTS = ['#4F6BFF','#00B4D8','#7C6CFF','#22C55E','#FF6E40','#FF3D7E'];
+  var FRAMES = ['#4F6BFF','#2B2F3A','#00B4D8','#7C6CFF','#22C55E','#FF3D7E'];
   var THEMES = {{ThemesJs}};
   function send(o){ if(window.chrome && window.chrome.webview) window.chrome.webview.postMessage(JSON.stringify(o)); }
 
   function setTabs(v){ send({type:'setTabLayout', value:v}); markTabs(v); }
   function setTheme(v){ send({type:'setTheme', value:v}); markTheme(v); }
   function setEngine(v){ send({type:'setSearchEngine', value:v}); markEngine(v); }
+  function setFrame(v){ send({type:'setFrameColor', value:v}); markFrame(v); }
+  function resetCrystal(){
+    if(confirm('Reset all Crystal settings to their defaults and restart? Your bookmarks and history are kept.'))
+      send({type:'resetSettings'});
+  }
   function setAccent(v){ send({type:'setAccent', value:v}); markAccent(v);
     document.documentElement.style.setProperty('--accent', v); }
   function setStartup(){
@@ -238,6 +258,19 @@ public static class SettingsPage
       box.appendChild(d);
     });
   }
+  function markFrame(v){
+    document.querySelectorAll('#frameSwatches .sw').forEach(function(s){
+      s.classList.toggle('on', (s.dataset.v||'').toUpperCase()===(v||'').toUpperCase()); });
+  }
+  function buildFrameSwatches(){
+    var box=document.getElementById('frameSwatches');
+    box.innerHTML='';
+    FRAMES.forEach(function(c){
+      var d=document.createElement('div'); d.className='sw'; d.style.background=c; d.dataset.v=c;
+      d.title=c; d.onclick=function(){ setFrame(c); };
+      box.appendChild(d);
+    });
+  }
 
   // Host pushes the current settings here.
   window.crystalSettings = function(s){
@@ -245,6 +278,7 @@ public static class SettingsPage
     markTheme(s.theme||'dark');
     markEngine(s.searchEngine||'google');
     markAccent(s.accent);
+    markFrame(s.frameColor||'#4F6BFF');
     document.documentElement.style.setProperty('--accent', s.accent);
     var r=document.querySelector('input[name=su][value="'+(s.startup||'newtab')+'"]'); if(r) r.checked=true;
     document.getElementById('suUrl').value = s.startupUrl||'';
@@ -289,6 +323,7 @@ public static class SettingsPage
 
   buildThemes();
   buildSwatches();
+  buildFrameSwatches();
   send({type:'getSettings'});
 </script>
 </body>

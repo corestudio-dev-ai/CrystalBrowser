@@ -16,7 +16,10 @@ public class AppSettings
     public string StartupUrl { get; set; } = "";
 
     /// <summary>Accent colour (hex) used to theme the UI.</summary>
-    public string Accent { get; set; } = "#7C6CFF";
+    public string Accent { get; set; } = "#4F6BFF";
+
+    /// <summary>Window frame border colour (hex), user-changeable in Settings.</summary>
+    public string FrameColor { get; set; } = "#4F6BFF";
 
     /// <summary>UI theme key: "dark" (Crystal, default), "light", "midnight", "forest" or "rose".</summary>
     public string Theme { get; set; } = "dark";
@@ -67,5 +70,13 @@ public static class SettingsStore
                 new JsonSerializerOptions { WriteIndented = true }));
         }
         catch { /* best effort */ }
+    }
+
+    /// <summary>Restore all settings to their defaults (deletes settings.json). Used by the
+    /// "Reset Crystal" action, which then restarts the app so defaults take effect cleanly.</summary>
+    public static void Reset()
+    {
+        try { if (File.Exists(Path_)) File.Delete(Path_); } catch { /* best effort */ }
+        Current = new AppSettings();
     }
 }

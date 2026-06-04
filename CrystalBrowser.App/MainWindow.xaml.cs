@@ -65,6 +65,7 @@ public partial class MainWindow : Window
         _bookmarks = new BookmarkStore(SettingsStore.Current.ActiveProfile);
         ApplyTheme(SettingsStore.Current.Theme);
         ApplyAccent(SettingsStore.Current.Accent);
+        ApplyFrameColor(SettingsStore.Current.FrameColor);
         if (_incognito)
         {
             _privateDataDir = Path.Combine(Path.GetTempPath(), "CrystalBrowserPrivate", Guid.NewGuid().ToString("N"));
@@ -146,33 +147,28 @@ public partial class MainWindow : Window
         new MainWindow(tor: true).Show();
     }
 
-    // ----- Vertical-tab cursor light (fluid trailing glow) ----------------
+    // ----- Win11 Mica transparency ----------------------------------------
 
-    private bool _lightOn;
+    [System.Runtime.InteropServices.DllImport("dwmapi.dll")]
+    private static extern int DwmSetWindowAttribute(IntPtr hwnd, int attr, ref int value, int size);
 
-    private void TabRail_MouseMove(object sender, MouseEventArgs e)
+    private const int DwmwaUseImmersiveDarkMode = 20;
+    private const int DwmwaSystemBackdropType = 38; // Win11 22621+
+    private const int BackdropMica = 2;
+
+    // Apply the Mica backdrop (and dark title frame) once the HWND exists. No-op on older
+    // Windows — the call simply fails and we fall back to the solid chrome backgrounds.
+    private void Window_SourceInitialized(object? sender, EventArgs e)
     {
-        var p = e.GetPosition((IInputElement)sender);
-        var dur = TimeSpan.FromMilliseconds(280);
-        var ease = new QuadraticEase { EasingMode = EasingMode.EaseOut };
-        // Center the glow on the cursor and ease toward it for a fluid trailing feel.
-        CursorLightMove.BeginAnimation(TranslateTransform.XProperty,
-            new DoubleAnimation(p.X - CursorLight.Width / 2, dur) { EasingFunction = ease });
-        CursorLightMove.BeginAnimation(TranslateTransform.YProperty,
-            new DoubleAnimation(p.Y - CursorLight.Height / 2, dur) { EasingFunction = ease });
-        if (!_lightOn)
+        try
         {
-            _lightOn = true;
-            CursorLight.BeginAnimation(OpacityProperty,
-                new DoubleAnimation(1, TimeSpan.FromMilliseconds(180)));
+            var hwnd = new System.Windows.Interop.WindowInteropHelper(this).Handle;
+            int dark = IsLight ? 0 : 1;
+            DwmSetWindowAttribute(hwnd, DwmwaUseImmersiveDarkMode, ref dark, sizeof(int));
+            int backdrop = BackdropMica;
+            DwmSetWindowAttribute(hwnd, DwmwaSystemBackdropType, ref backdrop, sizeof(int));
         }
-    }
-
-    private void TabRail_MouseLeave(object sender, MouseEventArgs e)
-    {
-        _lightOn = false;
-        CursorLight.BeginAnimation(OpacityProperty,
-            new DoubleAnimation(0, TimeSpan.FromMilliseconds(320)));
+        catch { /* pre-Win11 — keep the solid look */ }
     }
 
     // Ensure the window never launches larger than the available screen area,
@@ -260,9 +256,25 @@ public partial class MainWindow : Window
                 SettingsStore.Save();
                 break;
             case "setAccent":
-                s.Accent = root.GetProperty("value").GetString() ?? "#7C6CFF";
+                s.Accent = root.GetProperty("value").GetString() ?? "#4F6BFF";
                 SettingsStore.Save();
                 ApplyAccent(s.Accent); // live
+                break;
+            case "setFrameColor":
+                s.FrameColor = root.GetProperty("value").GetString() ?? "#4F6BFF";
+                SettingsStore.Save();
+                ApplyFrameColor(s.FrameColor); // live
+                break;
+            case "openChangelog":
+                if (_active != null)
+                {
+                    _active.IsHome = false;
+                    _active.Title.Text = "Changelog";
+                    core.NavigateToString(ChangelogPage.Html(s.Theme));
+                }
+                break;
+            case "resetSettings":
+                ResetSettingsAndRestart(core);
                 break;
             case "setTheme":
                 s.Theme = root.GetProperty("value").GetString() ?? "dark";
@@ -355,6 +367,26 @@ public partial class MainWindow : Window
             $"window.crystalImportResult && window.crystalImportResult({JsonSerializer.Serialize(sourceId)},{added})");
     }
 
+    // Reset all settings to defaults, show a brief animation, then relaunch the app (Opera-style).
+    private async void ResetSettingsAndRestart(CoreWebView2 core)
+    {
+        core.NavigateToString(ResetPage.Html(SettingsStore.Current.Theme));
+        SettingsStore.Reset();
+        await Task.Delay(1700);
+        try
+        {
+            var exe = Environment.ProcessPath;
+            if (!string.IsNullOrEmpty(exe))
+                System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo
+                {
+                    FileName = exe,
+                    UseShellExecute = true,
+                });
+        }
+        catch { /* if relaunch fails the user can reopen manually */ }
+        Application.Current.Shutdown();
+    }
+
     private static async Task PushSettings(CoreWebView2 core)
     {
         var s = SettingsStore.Current;
@@ -364,6 +396,7 @@ public partial class MainWindow : Window
             startup = s.Startup,
             startupUrl = s.StartupUrl,
             accent = s.Accent,
+            frameColor = s.FrameColor,
             theme = s.Theme,
             searchEngine = s.SearchEngine,
             activeProfile = s.ActiveProfile,
@@ -531,6 +564,13 @@ public partial class MainWindow : Window
         catch { /* invalid hex — keep the existing accent */ }
     }
 
+    // The user-chosen window frame border colour.
+    private void ApplyFrameColor(string hex)
+    {
+        try { Resources["FrameBrush"] = new SolidColorBrush((Color)ColorConverter.ConvertFromString(hex)); }
+        catch { /* invalid hex — keep the existing frame colour */ }
+    }
+
     // Swap the theme surface brushes from the chosen theme's palette. Live for the WPF chrome;
     // web/offline pages pick up the theme when they're next rendered (they're styled separately).
     private void ApplyTheme(string theme)
@@ -637,7 +677,27 @@ public partial class MainWindow : Window
     private void Navigate(WebView2 web, string input)
     {
         if (web.CoreWebView2 == null) return;
-        web.CoreWebView2.Navigate(Resolve(input));
+        var internalPage = ResolveInternal(input);
+        if (internalPage != null) web.CoreWebView2.NavigateToString(internalPage);
+        else web.CoreWebView2.Navigate(Resolve(input));
+    }
+
+    // Crystal's own internal pages, addressable as crystal://… (like edge://… or chrome://…).
+    // Returns the offline HTML to show, or null if the input isn't a crystal:// address.
+    private string? ResolveInternal(string input)
+    {
+        var s = input.Trim().ToLowerInvariant();
+        if (!s.StartsWith("crystal://")) return null;
+        var page = s["crystal://".Length..].TrimEnd('/');
+        var theme = SettingsStore.Current.Theme;
+        return page switch
+        {
+            "whatsnew" or "whats-new" => ChangelogPage.Html(theme, Config.Version),
+            "changelog"               => ChangelogPage.Html(theme),
+            "settings"                => SettingsPage.Html(theme),
+            "home" or "newtab"        => HomePage.Html(theme, SettingsStore.Current.SearchEngine),
+            _                          => ChangelogPage.Html(theme), // unknown crystal:// page
+        };
     }
 
     private static string Resolve(string input)

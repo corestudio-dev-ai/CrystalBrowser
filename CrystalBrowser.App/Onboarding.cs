@@ -57,6 +57,16 @@ public static class Onboarding
   .ghost { background:rgba(255,255,255,.08); font-weight:500; }
   .step { display:none; }
   .step.on { display:block; }
+  /* Animated version announcement on the welcome step. */
+  .hero { text-align:center; padding:6px 0 4px; }
+  .hero .gem { width:64px; height:64px; animation:floatIn .8s cubic-bezier(.2,.8,.2,1) both; }
+  .hero .ver { display:inline-block; margin-top:14px; font-size:13px; font-weight:600;
+    color:#fff; background:var(--accent); padding:5px 14px; border-radius:20px;
+    animation:riseIn .7s .25s cubic-bezier(.2,.8,.2,1) both; }
+  .hero h2 { animation:riseIn .7s .12s cubic-bezier(.2,.8,.2,1) both; }
+  @keyframes floatIn { from { opacity:0; transform:translateY(14px) scale(.9); }
+    to { opacity:1; transform:none; } }
+  @keyframes riseIn { from { opacity:0; transform:translateY(12px); } to { opacity:1; transform:none; } }
 </style>
 <style id="themecss">{{Theme.PageCssInner(theme)}}</style>
 </head>
@@ -66,8 +76,14 @@ public static class Onboarding
 
   <!-- 1. Welcome -->
   <div class="step on" data-step="0">
-    <h2>Welcome to Crystal</h2>
-    <p class="lead">A fast, private, Chromium-based browser. Here's what comes built in:</p>
+    <div class="hero">
+      <svg class="gem" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <path d="M5 3h14l3 6-10 12L2 9l3-6z" stroke="#8aa0ff" stroke-width="1.4"
+              stroke-linejoin="round" fill="rgba(79,107,255,.28)"/></svg>
+      <h2>Welcome to Crystal</h2>
+      <div class="ver">Version {{Config.Version}}</div>
+    </div>
+    <p class="lead" style="text-align:center;">A fast, private, Chromium-based browser. Here's what comes built in:</p>
     <div style="margin-top:14px;">
       <div class="feat"><div><div class="t">Ad &amp; tracker blocking</div>
         <div class="d">uBlock Origin Lite is built in and on by default — no setup.</div></div></div>
