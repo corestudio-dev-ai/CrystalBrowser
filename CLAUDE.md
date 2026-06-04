@@ -31,10 +31,11 @@ When asked to cut a release, do these steps **in order** (the descriptions matte
 
 1. **Implement** exactly what the user asked for, and build (`dotnet build`) to confirm it compiles cleanly.
 2. **Bump the version** in `Config.cs` (`Config.Version`) and `installer\CrystalBrowser.iss` (`AppVersion`) — keep the two in sync.
-3. **Commit** the change on `main` with a clear message, then `git push origin main`. Commit *before* creating the release so the tag points at the right commit.
-4. **Publish** the self-contained build and **compile the installer** (the two commands above) to produce `installer\CrystalBrowserSetup.exe`.
-5. **Create the GitHub release** with `gh release create vX.Y.Z installer\CrystalBrowserSetup.exe --target main --title "Crystal Browser X.Y.Z" --notes "…"`. Tag is `vX.Y.Z` (matches `Config.Version`); the asset **must** be `CrystalBrowserSetup.exe` (the updater grabs the first `.exe` asset).
-6. **Always write real release notes** — a short summary line plus bullets of what changed in this version, in plain language for end users. Never publish an empty or one-line release. Edit past releases with `gh release edit vX.Y.Z --notes "…"` if they're missing good notes.
+3. **Update the in-app changelog** in `Changelog.cs`: add a new `ChangelogEntry` at the **top** of `Entries`, with `Version` matching `Config.Version` and plain-language bullets of what changed. This is what users see in the "What's new" page after updating — never skip it. The same bullets should match the GitHub release notes written in step 7.
+4. **Commit** the change on `main` with a clear message, then `git push origin main`. Commit *before* creating the release so the tag points at the right commit.
+5. **Publish** the self-contained build and **compile the installer** (the two commands above) to produce `installer\CrystalBrowserSetup.exe`.
+6. **Create the GitHub release** with `gh release create vX.Y.Z installer\CrystalBrowserSetup.exe --target main --title "Crystal Browser X.Y.Z" --notes "…"`. Tag is `vX.Y.Z` (matches `Config.Version`); the asset **must** be `CrystalBrowserSetup.exe` (the updater grabs the first `.exe` asset).
+7. **Always write real release notes** — a short summary line plus bullets of what changed in this version, in plain language for end users. Never publish an empty or one-line release. Edit past releases with `gh release edit vX.Y.Z --notes "…"` if they're missing good notes.
 
 The in-app updater compares the release tag to `Config.Version`, so a release with a higher tag auto-updates everyone on launch.
 
