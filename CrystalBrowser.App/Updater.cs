@@ -4,8 +4,9 @@ using System.Text.Json;
 
 namespace CrystalBrowser.App;
 
-/// <summary>Details of an available update found on GitHub Releases.</summary>
-public record UpdateInfo(string Version, string DownloadUrl, string PageUrl);
+/// <summary>Details of an available update found on GitHub Releases. <paramref name="Patch"/> is the
+/// release's emergency-patch level (0 for a normal release), used to label same-version patches.</summary>
+public record UpdateInfo(string Version, string DownloadUrl, string PageUrl, int Patch = 0);
 
 /// <summary>Outcome of an update check.</summary>
 public enum UpdateStatus
@@ -66,17 +67,13 @@ public static class Updater
                 return new UpdateResult(UpdateStatus.UpToDate, null);
 
             root.TryGetProperty("assets", out var assets);
+            int remotePatch = await ReadPatchLevelAsync(assets);
 
             // Same version: this can still be an *emergency patch* (the version is intentionally
             // kept the same and only the assets are replaced). Detect it via the published patch
             // level in the release's patch.json asset — if it's higher than ours, update.
-            if (latest == local)
-            {
-                int remotePatch = await ReadPatchLevelAsync(assets);
-                if (remotePatch <= Config.PatchLevel)
-                    return new UpdateResult(UpdateStatus.UpToDate, null);
-                // else: an emergency patch is available — fall through to grab the installer.
-            }
+            if (latest == local && remotePatch <= Config.PatchLevel)
+                return new UpdateResult(UpdateStatus.UpToDate, null);
 
             // Find the installer asset (an .exe).
             string? dl = null;
@@ -97,7 +94,7 @@ public static class Updater
                 return new UpdateResult(UpdateStatus.Failed, null);
 
             return new UpdateResult(UpdateStatus.Available,
-                new UpdateInfo(tag.TrimStart('v', 'V'), dl, page));
+                new UpdateInfo(tag.TrimStart('v', 'V'), dl, page, remotePatch));
         }
         catch
         {

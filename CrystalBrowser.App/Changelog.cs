@@ -16,6 +16,12 @@ public static class Changelog
 {
     public static readonly IReadOnlyList<ChangelogEntry> Entries = new[]
     {
+        new ChangelogEntry("1.8.2", new[]
+        {
+            "The update banner is now Oceanic blue to match the rest of the browser (no more leftover purple).",
+            "Update notices now show patch levels clearly — e.g. \"1.8.1 [patch 2]\" — so you can tell a small patched update apart from a full new version.",
+            "Fixed tab hover: hovering a tab no longer flips it to a dark style, so titles stay readable instead of turning white-on-white.",
+        }),
         new ChangelogEntry("1.8.1", new[]
         {
             "New default look: a bright \"Oceanic\" theme — blue, white and transparent, like liquid glass over your desktop.",

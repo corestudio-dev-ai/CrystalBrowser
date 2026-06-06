@@ -226,6 +226,10 @@ public partial class MainWindow : Window
 
     private readonly List<TabGroup> _groups = new();
 
+    // Subtle translucent-gray tab hover highlight — reads correctly on light and dark themes.
+    private static readonly Brush TabHoverBrush =
+        new SolidColorBrush(Color.FromArgb(0x22, 0x80, 0x80, 0x80));
+
     // Colours cycled through as new groups are created.
     private static readonly Color[] GroupColors =
     {
@@ -514,6 +518,11 @@ public partial class MainWindow : Window
 
         header.MouseLeftButtonUp += (_, _) => Activate(tab);
         close.Click += (s, e) => { e.Handled = true; CloseTab(tab); };
+
+        // Hover: a subtle translucent-gray highlight that works on every theme. We deliberately
+        // do NOT change the title colour, so the text stays readable (no white-on-white).
+        header.MouseEnter += (_, _) => { if (_active != tab) tab.Header.Background = TabHoverBrush; };
+        header.MouseLeave += (_, _) => { if (_active != tab) tab.Header.Background = Brushes.Transparent; };
 
         // Right-click a tab to group it (vertical rail shows the coloured group headers).
         var menu = new ContextMenu();
@@ -881,6 +890,11 @@ public partial class MainWindow : Window
 
     private UpdateInfo? _pendingUpdate;
 
+    // Render a version for the update banner, adding a "[patch N]" suffix for emergency patches
+    // (so a same-version patch update reads e.g. "1.8.1 [patch 2]" instead of "1.8.1").
+    private static string VerLabel(string version, int patch) =>
+        patch > 0 ? $"{version} [patch {patch}]" : version;
+
     private async Task CheckForUpdatesAsync()
     {
         var result = await Updater.CheckAsync();
@@ -888,7 +902,7 @@ public partial class MainWindow : Window
         {
             case UpdateStatus.Available:
                 _pendingUpdate = result.Info!;
-                UpdateText.Text = $"Crystal Browser {result.Info!.Version} is available — you have {Config.Version}.";
+                UpdateText.Text = $"Crystal Browser {VerLabel(result.Info!.Version, result.Info!.Patch)} is available — you have {VerLabel(Config.Version, Config.PatchLevel)}.";
                 UpdateBar.Visibility = Visibility.Visible;
                 _updateTimer.Stop(); // found it — stop pinging
                 break;
@@ -920,7 +934,7 @@ public partial class MainWindow : Window
 
         var info = result.Info!;
         _pendingUpdate = info;
-        UpdateText.Text = $"Crystal Browser {info.Version} is available — you have {Config.Version}.";
+        UpdateText.Text = $"Crystal Browser {VerLabel(info.Version, info.Patch)} is available — you have {VerLabel(Config.Version, Config.PatchLevel)}.";
         UpdateBar.Visibility = Visibility.Visible;
         _updateTimer.Stop();
 

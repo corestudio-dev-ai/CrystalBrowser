@@ -137,10 +137,12 @@
                         </Border>
                         <ControlTemplate.Triggers>
                             <Trigger Property="IsMouseOver" Value="True">
-                                <Setter TargetName="b" Property="Background" Value="#2a221b"/>
+                                <!-- Translucent gray reads as a subtle highlight on both light
+                                     (Oceanic/Light) and Dark themes — no jarring dark box. -->
+                                <Setter TargetName="b" Property="Background" Value="#33808080"/>
                             </Trigger>
                             <Trigger Property="IsEnabled" Value="False">
-                                <Setter Property="Foreground" Value="#4a4866"/>
+                                <Setter Property="Foreground" Value="#9aa6b3"/>
                             </Trigger>
                         </ControlTemplate.Triggers>
                     </ControlTemplate>
@@ -396,7 +398,7 @@
 
         <!-- Update banner (shown only when a new version is available) -->
         <Border x:Name="UpdateBar" Grid.Row="4" Visibility="Collapsed" Padding="14,8"
-                Background="#2e2563" BorderBrush="#4a3da0" BorderThickness="0,1,0,1">
+                Background="#10477F" BorderBrush="{DynamicResource AccentBrush}" BorderThickness="0,1,0,1">
             <Grid>
                 <Grid.ColumnDefinitions>
                     <ColumnDefinition Width="Auto"/>
@@ -404,8 +406,8 @@
                     <ColumnDefinition Width="Auto"/>
                 </Grid.ColumnDefinitions>
                 <TextBlock Grid.Column="0" Text="&#xE896;" FontFamily="Segoe MDL2 Assets" FontSize="14"
-                           Foreground="#cdbcff" VerticalAlignment="Center" Margin="0,0,10,0"/>
-                <TextBlock x:Name="UpdateText" Grid.Column="1" Foreground="#ece9ff" FontSize="13"
+                           Foreground="#bfe0ff" VerticalAlignment="Center" Margin="0,0,10,0"/>
+                <TextBlock x:Name="UpdateText" Grid.Column="1" Foreground="#eaf4ff" FontSize="13"
                            VerticalAlignment="Center" Text="A new version of Crystal Browser is available."/>
                 <StackPanel Grid.Column="2" Orientation="Horizontal">
                     <Button x:Name="BtnUpdateNow" Content="Update now" Click="BtnUpdateNow_Click"
