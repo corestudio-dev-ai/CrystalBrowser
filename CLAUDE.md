@@ -51,6 +51,23 @@ When asked to cut a release, do these steps **in order** (the descriptions matte
 
 The in-app updater compares the release tag to `Config.Version`, so a release with a higher tag auto-updates everyone on launch.
 
+## Emergency patches (re-ship the *current* version)
+
+When the user says something like **"emergency patch"**, **"hotfix the current version"**, **"fix what's live"**, or **"re-ship the current version"**, they mean: *the version that is already released is seriously broken and must be fixed and re-published under the **same** version number.* This is **different** from a normal release — do **not** bump the version.
+
+Do these steps in order:
+
+1. **Implement the fix** and build (`dotnet build`) to confirm it compiles cleanly.
+2. **Do NOT change the version.** Leave `Config.Version` and `installer\CrystalBrowser.iss` `AppVersion` exactly as they are — the version stays the same (e.g. `1.8.1` stays `1.8.1`). Only the shipped installer asset changes.
+3. **Changelog:** do not add a new `ChangelogEntry`. If the fix is user-visible, you may append a bullet to the *existing* entry for the current version, but never create a new version entry.
+4. **Commit** the fix on `main` with a clear message (note it's an emergency patch) and `git push origin main`.
+5. **Re-publish** the self-contained build and **re-compile the installer** to regenerate `installer\CrystalBrowserSetup.exe`.
+6. **Replace the existing release's asset** (do not create a new tag). Re-upload over the same tag:
+   `gh release upload vX.Y.Z installer\CrystalBrowserSetup.exe --clobber`
+   (`--clobber` overwrites the old asset.) Optionally refresh the notes with `gh release edit vX.Y.Z --notes "…"`.
+
+Because the tag and `Config.Version` are unchanged, the updater won't see it as "newer", so existing installs won't auto-update — the patched asset is for **fresh downloads** and anyone who reinstalls. If everyone *must* get the fix automatically, that's a normal release with a version bump instead, not an emergency patch — confirm which the user wants if it's ambiguous.
+
 ## Architecture
 
 The whole UI lives in **`MainWindow.xaml` / `MainWindow.xaml.cs`** (~850 lines) — tab strip, custom title bar, address bar, status bar, home page hosting, and per-tab `WebView2` management. `BrowserTab` is the per-tab model. New windows are spawned by constructing `MainWindow`; `App.xaml.cs` opens the first window and, when Windows launches Crystal as the default browser, passes the URL via `new MainWindow(url)`.
