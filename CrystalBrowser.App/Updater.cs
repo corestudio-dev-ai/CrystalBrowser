@@ -57,16 +57,30 @@ public static class Updater
 
             var tag = root.GetProperty("tag_name").GetString() ?? "";
             var latest = ParseVersion(tag);
+            var local = ParseVersion(Config.Version);
             if (latest == null)
                 return new UpdateResult(UpdateStatus.Failed, null); // unparseable tag — retry later
 
-            // We're already on (or ahead of) the latest release: definitive, stop polling.
-            if (latest <= ParseVersion(Config.Version))
+            // We're ahead of the latest release: definitive, stop polling.
+            if (latest < local)
                 return new UpdateResult(UpdateStatus.UpToDate, null);
+
+            root.TryGetProperty("assets", out var assets);
+
+            // Same version: this can still be an *emergency patch* (the version is intentionally
+            // kept the same and only the assets are replaced). Detect it via the published patch
+            // level in the release's patch.json asset — if it's higher than ours, update.
+            if (latest == local)
+            {
+                int remotePatch = await ReadPatchLevelAsync(assets);
+                if (remotePatch <= Config.PatchLevel)
+                    return new UpdateResult(UpdateStatus.UpToDate, null);
+                // else: an emergency patch is available — fall through to grab the installer.
+            }
 
             // Find the installer asset (an .exe).
             string? dl = null;
-            if (root.TryGetProperty("assets", out var assets))
+            if (assets.ValueKind == JsonValueKind.Array)
                 foreach (var a in assets.EnumerateArray())
                 {
                     var name = a.GetProperty("name").GetString() ?? "";
@@ -112,6 +126,32 @@ public static class Updater
         {
             return false;
         }
+    }
+
+    /// <summary>
+    /// Read the emergency-patch level published with a release, from its <c>patch.json</c> asset
+    /// (e.g. <c>{ "version": "1.8.1", "patch": 2 }</c>). Returns 0 when there's no such asset or it
+    /// can't be read, so a release without the file is simply treated as patch level 0.
+    /// </summary>
+    private static async Task<int> ReadPatchLevelAsync(JsonElement assets)
+    {
+        try
+        {
+            if (assets.ValueKind != JsonValueKind.Array) return 0;
+            string? patchUrl = null;
+            foreach (var a in assets.EnumerateArray())
+            {
+                if (string.Equals(a.GetProperty("name").GetString(), "patch.json", StringComparison.OrdinalIgnoreCase))
+                {
+                    patchUrl = a.GetProperty("browser_download_url").GetString();
+                    break;
+                }
+            }
+            if (patchUrl == null) return 0;
+            using var doc = JsonDocument.Parse(await Http.GetStringAsync(patchUrl));
+            return doc.RootElement.TryGetProperty("patch", out var p) && p.TryGetInt32(out var n) ? n : 0;
+        }
+        catch { return 0; }
     }
 
     // Parse "v1.2.3" / "1.2" into a comparable Version; null if unparseable.

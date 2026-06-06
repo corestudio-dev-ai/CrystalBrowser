@@ -42,11 +42,11 @@ So `4` is the highest value any sub-minor segment ever takes; reaching `.4` at t
 When asked to cut a release, do these steps **in order** (the descriptions matter — releases must always ship with proper, human-readable notes):
 
 1. **Implement** exactly what the user asked for, and build (`dotnet build`) to confirm it compiles cleanly.
-2. **Bump the version** in `Config.cs` (`Config.Version`) and `installer\CrystalBrowser.iss` (`AppVersion`) — keep the two in sync.
+2. **Bump the version** in `Config.cs` (`Config.Version`) and `installer\CrystalBrowser.iss` (`AppVersion`) — keep the two in sync. Also **reset `Config.PatchLevel` to `0`** and update the repo-root `patch.json` to the new version with `"patch": 0` (the patch level only counts emergency patches *within* a version — see "Emergency patches" below). Include the updated `patch.json` as a release asset in step 6.
 3. **Update the in-app changelog** in `Changelog.cs`: add a new `ChangelogEntry` at the **top** of `Entries`, with `Version` matching `Config.Version` and plain-language bullets of what changed. This is what users see in the "What's new" page after updating — never skip it. The same bullets should match the GitHub release notes written in step 7.
 4. **Commit** the change on `main` with a clear message, then `git push origin main`. Commit *before* creating the release so the tag points at the right commit.
 5. **Publish** the self-contained build and **compile the installer** (the two commands above) to produce `installer\CrystalBrowserSetup.exe`.
-6. **Create the GitHub release** with `gh release create vX.Y.Z installer\CrystalBrowserSetup.exe --target main --title "Crystal Browser X.Y.Z" --notes "…"`. Tag is `vX.Y.Z` (matches `Config.Version`); the asset **must** be `CrystalBrowserSetup.exe` (the updater grabs the first `.exe` asset).
+6. **Create the GitHub release** with `gh release create vX.Y.Z installer\CrystalBrowserSetup.exe patch.json --target main --title "Crystal Browser X.Y.Z" --notes "…"`. Tag is `vX.Y.Z` (matches `Config.Version`); the installer asset **must** be `CrystalBrowserSetup.exe` (the updater grabs the first `.exe` asset), and `patch.json` must be attached so the patch-level check works.
 7. **Always write real release notes** — a short summary line plus bullets of what changed in this version, in plain language for end users. Never publish an empty or one-line release. Edit past releases with `gh release edit vX.Y.Z --notes "…"` if they're missing good notes.
 
 The in-app updater compares the release tag to `Config.Version`, so a release with a higher tag auto-updates everyone on launch.
@@ -58,15 +58,18 @@ When the user says something like **"emergency patch"**, **"hotfix the current v
 Do these steps in order:
 
 1. **Implement the fix** and build (`dotnet build`) to confirm it compiles cleanly.
-2. **Do NOT change the version.** Leave `Config.Version` and `installer\CrystalBrowser.iss` `AppVersion` exactly as they are — the version stays the same (e.g. `1.8.1` stays `1.8.1`). Only the shipped installer asset changes.
-3. **Changelog:** do not add a new `ChangelogEntry`. If the fix is user-visible, you may append a bullet to the *existing* entry for the current version, but never create a new version entry.
-4. **Commit** the fix on `main` with a clear message (note it's an emergency patch) and `git push origin main`.
-5. **Re-publish** the self-contained build and **re-compile the installer** to regenerate `installer\CrystalBrowserSetup.exe`.
-6. **Replace the existing release's asset** (do not create a new tag). Re-upload over the same tag:
-   `gh release upload vX.Y.Z installer\CrystalBrowserSetup.exe --clobber`
-   (`--clobber` overwrites the old asset.) Optionally refresh the notes with `gh release edit vX.Y.Z --notes "…"`.
+2. **Do NOT change the version.** Leave `Config.Version` and `installer\CrystalBrowser.iss` `AppVersion` exactly as they are — the version stays the same (e.g. `1.8.1` stays `1.8.1`).
+3. **Bump the patch level** so the updater can pick the patch up (this is the whole point of the patch-level system, below): increment `Config.PatchLevel` by 1 in `Config.cs`, **and** bump the `"patch"` number in the repo-root **`patch.json`** to match (keep its `"version"` equal to `Config.Version`). The two must always agree.
+4. **Changelog:** do not add a new `ChangelogEntry`. If the fix is user-visible, you may append a bullet to the *existing* entry for the current version, but never create a new version entry.
+5. **Commit** the fix on `main` with a clear message (note it's an emergency patch) and `git push origin main`.
+6. **Re-publish** the self-contained build and **re-compile the installer** to regenerate `installer\CrystalBrowserSetup.exe`.
+7. **Move the tag to the new commit** so the release's auto-generated **Source code (zip/tar.gz)** assets reflect the patched code (otherwise they stay frozen at the original commit):
+   `git tag -f vX.Y.Z` then `git push origin vX.Y.Z --force`.
+8. **Replace the release's assets** (same tag, no new release). Upload both the installer **and** the updated `patch.json`, overwriting the old ones:
+   `gh release upload vX.Y.Z installer\CrystalBrowserSetup.exe patch.json --clobber`
+   Optionally refresh notes with `gh release edit vX.Y.Z --notes "…"`.
 
-Because the tag and `Config.Version` are unchanged, the updater won't see it as "newer", so existing installs won't auto-update — the patched asset is for **fresh downloads** and anyone who reinstalls. If everyone *must* get the fix automatically, that's a normal release with a version bump instead, not an emergency patch — confirm which the user wants if it's ambiguous.
+How the updater picks this up: `Updater.CheckAsync` compares the release tag to `Config.Version` as usual, but when they're **equal** it also reads the release's `patch.json` asset and compares its `"patch"` to the running build's `Config.PatchLevel`. A higher published patch level at the same version counts as an available update — so emergency patches **do** reach existing installs (provided that install already has the patch-level-aware updater; the very first build to ship this logic can't retroactively detect a patch to itself). A release with no `patch.json` is treated as patch level 0.
 
 ## Architecture
 

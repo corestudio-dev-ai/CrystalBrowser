@@ -23,6 +23,15 @@ public static class Config
     public const string Version = "1.8.1";
 
     /// <summary>
+    /// Emergency-patch level *within* the current <see cref="Version"/>. Starts at 0 for a fresh
+    /// version and increments by 1 for every emergency patch that re-ships the SAME version (see the
+    /// "Emergency patches" section in CLAUDE.md). Reset back to 0 whenever <see cref="Version"/> is
+    /// bumped. The updater treats a release whose published patch level is higher than this — at the
+    /// same version — as an available update, so emergency patches reach existing installs.
+    /// </summary>
+    public const int PatchLevel = 1;
+
+    /// <summary>
     /// GitHub repo (owner/name) whose Releases the in-app updater checks. Set this to your
     /// repo, e.g. "hyperr10/CrystalBrowser". Leave blank to disable update checks.
     /// </summary>
