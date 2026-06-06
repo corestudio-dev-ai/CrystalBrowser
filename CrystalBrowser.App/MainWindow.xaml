@@ -196,6 +196,35 @@
          Background is transparent so the Win11 Mica backdrop shows through bare chrome areas. -->
     <Border x:Name="FrameBorder" BorderThickness="1" Background="Transparent"
             BorderBrush="{DynamicResource FrameBrush}">
+    <Grid>
+    <!-- Flowing "liquid glass" water layer. Sits behind everything and shows through the
+         Oceanic theme's translucent chrome panels. Toggled on only for Oceanic (ApplyTheme). -->
+    <Border x:Name="WaterBg">
+        <Border.Background>
+            <LinearGradientBrush x:Name="WaterBrush" StartPoint="0,0" EndPoint="1,1">
+                <GradientStop Color="#CFE9FB" Offset="0"/>
+                <GradientStop x:Name="WaterStopA" Color="#7FC0F2" Offset="0.35"/>
+                <GradientStop x:Name="WaterStopB" Color="#A9DAF7" Offset="0.6"/>
+                <GradientStop Color="#D9EFFC" Offset="1"/>
+            </LinearGradientBrush>
+        </Border.Background>
+        <Border.Triggers>
+            <EventTrigger RoutedEvent="Loaded">
+                <BeginStoryboard>
+                    <Storyboard RepeatBehavior="Forever" AutoReverse="True">
+                        <PointAnimation Storyboard.TargetName="WaterBrush" Storyboard.TargetProperty="StartPoint"
+                                        From="0,0" To="0.45,0.35" Duration="0:0:9"/>
+                        <PointAnimation Storyboard.TargetName="WaterBrush" Storyboard.TargetProperty="EndPoint"
+                                        From="1,1" To="0.65,1.25" Duration="0:0:11"/>
+                        <DoubleAnimation Storyboard.TargetName="WaterStopA" Storyboard.TargetProperty="Offset"
+                                         From="0.30" To="0.55" Duration="0:0:7"/>
+                        <DoubleAnimation Storyboard.TargetName="WaterStopB" Storyboard.TargetProperty="Offset"
+                                         From="0.62" To="0.78" Duration="0:0:8"/>
+                    </Storyboard>
+                </BeginStoryboard>
+            </EventTrigger>
+        </Border.Triggers>
+    </Border>
     <Grid x:Name="RootPadding">
         <Grid.RowDefinitions>
             <RowDefinition Height="Auto"/>  <!-- tab strip -->
@@ -559,6 +588,7 @@
                 </StackPanel>
             </Grid>
         </Border>
+    </Grid>
     </Grid>
     </Border>
 </Window>

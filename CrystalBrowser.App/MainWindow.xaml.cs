@@ -730,6 +730,11 @@ public partial class MainWindow : Window
         Set("TabTextActive",   t.TabTextActive);
         Set("TabTextInactive", t.TabTextInactive);
         Set("TabActiveBg",     t.TabActiveBg);
+
+        // The animated water layer only makes sense behind Oceanic's translucent glass chrome;
+        // other themes use opaque chrome (or the Mica backdrop), so hide it there.
+        WaterBg.Visibility = string.Equals(theme, "oceanic", StringComparison.OrdinalIgnoreCase)
+            ? Visibility.Visible : Visibility.Collapsed;
     }
 
     private bool IsLight => Theme.IsLight(SettingsStore.Current.Theme);

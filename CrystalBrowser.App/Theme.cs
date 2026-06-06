@@ -20,8 +20,8 @@ public static class Theme
         // the Win11 Mica backdrop shimmer through (the 8-digit #AARRGGBB colours carry alpha).
         new ThemeDef("oceanic", "Oceanic", true, "#1E88E5", "#82C4FF",
             "radial-gradient(1200px 700px at 50% -10%, #d6ecfb 0%, #e9f4fc 55%, #f4f9fd 100%)",
-            "#eef5fb", "#CCFFFFFF", "#B3E6F2FC", "#E6FFFFFF",
-            "#0f2a40", "#5b7186", "#0f2a40", "#4a6275", "#CCFFFFFF"),
+            "#eef5fb", "#A6FFFFFF", "#8CDCEFFB", "#D9FFFFFF",
+            "#0f2a40", "#41617a", "#0f2a40", "#3f5d72", "#BFFFFFFF"),
         new ThemeDef("light", "Light", true, "#1E88E5", "#5AA9F0",
             "#f3f6fa",
             "#f3f6fa", "#e7edf4", "#eef2f8", "#ffffff",

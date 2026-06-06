@@ -23,6 +23,7 @@ public static class Changelog
             "Tabs now always live in the vertical rail for a cleaner, more vertical layout — the top tab strip is gone.",
             "A redesigned bookmarks bar with rounded, accent-dotted chips.",
             "New screenshot tool next to the Edit pen: click it to instantly save a picture of the page to Documents\\Crystal Browser Screens.",
+            "The Oceanic theme now gently flows: a soft, animated blue \"liquid glass\" water effect shimmers behind the interface.",
         }),
         new ChangelogEntry("1.8", new[]
         {
