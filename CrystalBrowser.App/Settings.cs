@@ -15,14 +15,14 @@ public class AppSettings
     /// <summary>The page to open at startup when <see cref="Startup"/> is "url".</summary>
     public string StartupUrl { get; set; } = "";
 
-    /// <summary>Accent colour (hex) used to theme the UI. Defaults to Crystal orange (1.8).</summary>
-    public string Accent { get; set; } = "#FF7A1A";
+    /// <summary>Accent colour (hex) used to theme the UI. Defaults to Oceanic blue (1.8.1).</summary>
+    public string Accent { get; set; } = "#1E88E5";
 
     /// <summary>Window frame border colour (hex), user-changeable in Settings.</summary>
-    public string FrameColor { get; set; } = "#FF7A1A";
+    public string FrameColor { get; set; } = "#1E88E5";
 
-    /// <summary>UI theme key: "dark" (Crystal, default), "light", "midnight", "forest" or "rose".</summary>
-    public string Theme { get; set; } = "dark";
+    /// <summary>UI theme key: "oceanic" (default liquid-glass), "light" or "dark".</summary>
+    public string Theme { get; set; } = "oceanic";
 
     /// <summary>Search engine key: "google" (default) or "duckduckgo".</summary>
     public string SearchEngine { get; set; } = "google";

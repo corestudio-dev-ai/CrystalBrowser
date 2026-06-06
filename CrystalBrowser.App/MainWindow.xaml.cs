@@ -63,6 +63,7 @@ public partial class MainWindow : Window
         InitializeComponent();
         _incognito = tor;
         ProfileStore.EnsureActive(); // profiles are the storage unit — guarantee a valid one
+        SettingsStore.Current.TabLayout = "vertical"; // 1.8.1: tabs always live in the vertical rail
         // Bookmarks and history both live in the active profile (cemented in 1.5.3).
         _bookmarks = new BookmarkStore(SettingsStore.Current.ActiveProfile);
         if (!_incognito) _autofill = new AutofillStore(SettingsStore.Current.ActiveProfile);
@@ -1061,6 +1062,30 @@ public partial class MainWindow : Window
 
     // ----- Bookmarks ------------------------------------------------------
 
+    // ----- Screenshot tool ------------------------------------------------
+    // Capture the visible page and drop a PNG into Documents\Crystal Browser Screens.
+
+    private async void BtnShot_Click(object sender, RoutedEventArgs e)
+    {
+        var core = Current?.CoreWebView2;
+        if (core == null) return;
+        try
+        {
+            var dir = Path.Combine(
+                Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments),
+                "Crystal Browser Screens");
+            Directory.CreateDirectory(dir);
+            var file = Path.Combine(dir, $"screenshot-{DateTime.Now:yyyy-MM-dd_HH-mm-ss}.png");
+            using (var fs = new FileStream(file, FileMode.Create, FileAccess.Write))
+                await core.CapturePreviewAsync(CoreWebView2CapturePreviewImageFormat.Png, fs);
+            SetStatus($"Screenshot saved to {file}");
+        }
+        catch
+        {
+            SetStatus("Couldn't save the screenshot.");
+        }
+    }
+
     private void BtnStar_Click(object sender, RoutedEventArgs e)
     {
         var web = Current;
@@ -1080,16 +1105,26 @@ public partial class MainWindow : Window
         BookmarkStrip.Children.Clear();
         foreach (var bm in _bookmarks.Items)
         {
+            // Redesigned chip (1.8.1): a rounded pill with a small accent dot + the title.
+            var dot = new System.Windows.Shapes.Ellipse
+            {
+                Width = 8, Height = 8, Fill = (Brush)Resources["AccentBrush"],
+                VerticalAlignment = VerticalAlignment.Center, Margin = new Thickness(0, 0, 8, 0)
+            };
             var label = new TextBlock
             {
                 Text = Truncate(bm.Title, 24), Foreground = (Brush)Resources["TextPrimary"],
                 FontSize = 12, VerticalAlignment = VerticalAlignment.Center
             };
+            var content = new StackPanel { Orientation = Orientation.Horizontal };
+            content.Children.Add(dot);
+            content.Children.Add(label);
             var chip = new Button
             {
-                Content = label, Style = (Style)FindResource("IconBtn"),
-                Width = double.NaN, Height = 26, Padding = new Thickness(10, 0, 10, 0),
-                Margin = new Thickness(2, 0, 0, 0), Cursor = Cursors.Hand, ToolTip = bm.Url
+                Content = content, Style = (Style)FindResource("IconBtn"),
+                Background = (Brush)Resources["SurfaceBg"],
+                Width = double.NaN, Height = 30, Padding = new Thickness(12, 0, 14, 0),
+                Margin = new Thickness(0, 0, 7, 0), Cursor = Cursors.Hand, ToolTip = bm.Url
             };
             chip.Click += (_, _) => { if (Current != null) Navigate(Current, bm.Url); };
             // Right-click removes the bookmark.

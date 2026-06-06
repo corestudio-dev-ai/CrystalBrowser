@@ -13,32 +13,26 @@ public sealed record ThemeDef(
 /// <summary>Theme registry + shared theming helpers for the offline (NavigateToString) pages.</summary>
 public static class Theme
 {
-    /// <summary>All selectable themes, in display order. "dark" (Crystal) is the default.</summary>
+    /// <summary>All selectable themes, in display order. "oceanic" (liquid-glass blue) is the default.</summary>
     public static readonly IReadOnlyList<ThemeDef> All = new[]
     {
-        new ThemeDef("dark", "Crystal", false, "#FF7A1A", "#FFA85C",
-            "radial-gradient(1200px 700px at 50% -10%, #2a1c12 0%, #1a130d 55%, #0e0b08 100%)",
-            "#0e0b08", "#1f1813", "#17110c", "#130e0a",
-            "#fff3ea", "#a68a78", "#ffffff", "#dac6b9", "#1f1813"),
-        new ThemeDef("light", "Light", true, "#5A47E0", "#7C6CFF",
-            "#f3f2f8",
-            "#f3f2f8", "#e7e5f1", "#eceaf5", "#ffffff",
-            "#1a1830", "#6b6890", "#1a1830", "#6b6890", "#dcd9ec"),
-        new ThemeDef("midnight", "Midnight", false, "#00E5FF", "#6CF0FF",
-            "radial-gradient(1200px 700px at 50% -10%, #07243a 0%, #061522 55%, #02080f 100%)",
-            "#02080f", "#0a1b2b", "#07131f", "#050d16",
-            "#e6f6ff", "#6f8ba0", "#ffffff", "#9fb6c8", "#0a1b2b"),
-        new ThemeDef("forest", "Forest", false, "#69F0AE", "#38C172",
-            "radial-gradient(1200px 700px at 50% -10%, #123524 0%, #0c2018 55%, #07140e 100%)",
-            "#07140e", "#10271c", "#0b1d15", "#0a1810",
-            "#e8fff0", "#7ea08b", "#ffffff", "#a6c8b5", "#10271c"),
-        new ThemeDef("rose", "Rose", false, "#FF3D7E", "#FF89B0",
-            "radial-gradient(1200px 700px at 50% -10%, #3a1024 0%, #240b18 55%, #14070d 100%)",
-            "#14070d", "#2a1019", "#1d0b12", "#180a10",
-            "#ffe9f1", "#a67e8d", "#ffffff", "#c8a6b5", "#2a1019"),
+        // Oceanic — a light "liquid glass" theme: blue/white with translucent chrome that lets
+        // the Win11 Mica backdrop shimmer through (the 8-digit #AARRGGBB colours carry alpha).
+        new ThemeDef("oceanic", "Oceanic", true, "#1E88E5", "#82C4FF",
+            "radial-gradient(1200px 700px at 50% -10%, #d6ecfb 0%, #e9f4fc 55%, #f4f9fd 100%)",
+            "#eef5fb", "#CCFFFFFF", "#B3E6F2FC", "#E6FFFFFF",
+            "#0f2a40", "#5b7186", "#0f2a40", "#4a6275", "#CCFFFFFF"),
+        new ThemeDef("light", "Light", true, "#1E88E5", "#5AA9F0",
+            "#f3f6fa",
+            "#f3f6fa", "#e7edf4", "#eef2f8", "#ffffff",
+            "#16202b", "#5b6b7b", "#16202b", "#5b6b7b", "#dde6f0"),
+        new ThemeDef("dark", "Dark", false, "#4F9BFF", "#8FC4FF",
+            "radial-gradient(1200px 700px at 50% -10%, #14202e 0%, #0f1722 55%, #0b1016 100%)",
+            "#0b1016", "#161b22", "#11151b", "#1a2029",
+            "#e6edf3", "#8b949e", "#ffffff", "#b3bcc7", "#1f2630"),
     };
 
-    /// <summary>Look up a theme by key, falling back to the default Crystal (dark) theme.</summary>
+    /// <summary>Look up a theme by key, falling back to the default Oceanic theme.</summary>
     public static ThemeDef Get(string? key) =>
         All.FirstOrDefault(t => string.Equals(t.Key, key, StringComparison.OrdinalIgnoreCase)) ?? All[0];
 
@@ -67,7 +61,7 @@ public static class Theme
   input { background:#fff !important; color:#1c1a2e !important; border-color:rgba(0,0,0,.15) !important; }
   .row,.profrow { border-color:rgba(0,0,0,.08) !important; }
   .seg button { color:#5b5878; }
-  a { color:#5a47e0 !important; }
+  a { color:#1E88E5 !important; }
 """ : "";
         // --accent is set without !important so a page's live inline override (the accent
         // swatches on the Settings page) still wins; the body background is themed.

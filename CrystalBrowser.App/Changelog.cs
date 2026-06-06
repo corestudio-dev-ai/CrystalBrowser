@@ -16,6 +16,14 @@ public static class Changelog
 {
     public static readonly IReadOnlyList<ChangelogEntry> Entries = new[]
     {
+        new ChangelogEntry("1.8.1", new[]
+        {
+            "New default look: a bright \"Oceanic\" theme — blue, white and transparent, like liquid glass over your desktop.",
+            "Themes simplified to three clean choices: Oceanic, Light and Dark. The old neon and heavily-coloured themes have been retired.",
+            "Tabs now always live in the vertical rail for a cleaner, more vertical layout — the top tab strip is gone.",
+            "A redesigned bookmarks bar with rounded, accent-dotted chips.",
+            "New screenshot tool next to the Edit pen: click it to instantly save a picture of the page to Documents\\Crystal Browser Screens.",
+        }),
         new ChangelogEntry("1.8", new[]
         {
             "A big redesign inspired by Zen Browser: a calmer, cleaner look with vertical tabs now the default layout.",

@@ -98,13 +98,6 @@ public static class SettingsPage
   <div class="card">
     <h2>Appearance</h2>
     <div class="row">
-      <div><div class="k">Tabs</div><div class="sub">Choose where your tabs live.</div></div>
-      <div class="seg" id="segTabs">
-        <button data-v="horizontal" onclick="setTabs('horizontal')">Horizontal</button>
-        <button data-v="vertical" onclick="setTabs('vertical')">Vertical</button>
-      </div>
-    </div>
-    <div class="row">
       <div><div class="k">Theme</div><div class="sub">Each theme sets a colour and accent.</div></div>
       <div class="seg" id="segTheme"></div>
     </div>
@@ -201,12 +194,11 @@ public static class SettingsPage
   </div>
 </div>
 <script>
-  var ACCENTS = ['#FF7A1A','#4F6BFF','#00B4D8','#7C6CFF','#22C55E','#FF3D7E'];
-  var FRAMES = ['#FF7A1A','#2B2F3A','#4F6BFF','#7C6CFF','#22C55E','#FF3D7E'];
+  var ACCENTS = ['#1E88E5','#00B4D8','#4F9BFF','#22C55E','#7C6CFF','#FF3D7E'];
+  var FRAMES = ['#1E88E5','#2B2F3A','#00B4D8','#4F9BFF','#22C55E','#FF3D7E'];
   var THEMES = {{ThemesJs}};
   function send(o){ if(window.chrome && window.chrome.webview) window.chrome.webview.postMessage(JSON.stringify(o)); }
 
-  function setTabs(v){ send({type:'setTabLayout', value:v}); markTabs(v); }
   function setTheme(v){ send({type:'setTheme', value:v}); markTheme(v); }
   function setEngine(v){ send({type:'setSearchEngine', value:v}); markEngine(v); }
   function setFrame(v){ send({type:'setFrameColor', value:v}); markFrame(v); }
@@ -232,10 +224,6 @@ public static class SettingsPage
     else { var e=prompt('Sign in to sync — enter your email:'); if(e && e.trim()) send({type:'signIn', email:e.trim()}); }
   }
 
-  function markTabs(v){
-    document.querySelectorAll('#segTabs button').forEach(function(b){
-      b.classList.toggle('on', b.dataset.v===v); });
-  }
   function markTheme(v){
     document.querySelectorAll('#segTheme button').forEach(function(b){
       b.classList.toggle('on', b.dataset.v===v); });
@@ -282,11 +270,10 @@ public static class SettingsPage
 
   // Host pushes the current settings here.
   window.crystalSettings = function(s){
-    markTabs(s.tabLayout);
-    markTheme(s.theme||'dark');
+    markTheme(s.theme||'oceanic');
     markEngine(s.searchEngine||'google');
     markAccent(s.accent);
-    markFrame(s.frameColor||'#4F6BFF');
+    markFrame(s.frameColor||'#1E88E5');
     document.documentElement.style.setProperty('--accent', s.accent);
     var r=document.querySelector('input[name=su][value="'+(s.startup||'newtab')+'"]'); if(r) r.checked=true;
     document.getElementById('suUrl').value = s.startupUrl||'';

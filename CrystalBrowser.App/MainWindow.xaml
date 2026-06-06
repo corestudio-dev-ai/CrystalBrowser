@@ -17,10 +17,10 @@
     </shell:WindowChrome.WindowChrome>
     <Window.Resources>
 
-        <!-- Accent colour (themed live from Settings). Crystal orange (1.8 Zen redesign). -->
-        <SolidColorBrush x:Key="AccentBrush" Color="#FF7A1A"/>
+        <!-- Accent colour (themed live from Settings). Oceanic blue (1.8.1 liquid-glass). -->
+        <SolidColorBrush x:Key="AccentBrush" Color="#1E88E5"/>
         <!-- Window frame border colour (user-changeable via Settings). -->
-        <SolidColorBrush x:Key="FrameBrush" Color="#FF7A1A"/>
+        <SolidColorBrush x:Key="FrameBrush" Color="#1E88E5"/>
 
         <!-- Theme surfaces (dark defaults; swapped live by ApplyTheme).
              Slight alpha lets the Win11 Mica backdrop show through the chrome. -->
@@ -314,6 +314,10 @@
                             </ControlTemplate>
                         </ToggleButton.Template>
                     </ToggleButton>
+                    <Button x:Name="BtnShot" Style="{StaticResource IconBtn}" Content="&#xE722;"
+                            FontFamily="Segoe MDL2 Assets" FontSize="14"
+                            Click="BtnShot_Click" ToolTip="Screenshot this page (saves to Documents\Crystal Browser Screens)"
+                            Margin="2,0,0,0"/>
                     <Button x:Name="BtnStar" Style="{StaticResource IconBtn}" Content="&#9734;"
                             Click="BtnStar_Click" ToolTip="Bookmark this page" Margin="2,0,0,0"/>
                     <Button x:Name="BtnPrivate" Style="{StaticResource IconBtn}" Content="&#xE7B3;"
@@ -328,8 +332,8 @@
         </Border>
 
         <!-- Bookmarks bar (hidden when empty) -->
-        <Border x:Name="BookmarkBar" Grid.Row="2" Background="#15132a" Padding="6,3"
-                BorderBrush="#262445" BorderThickness="0,1,0,1" Visibility="Collapsed">
+        <Border x:Name="BookmarkBar" Grid.Row="2" Background="{DynamicResource ChromeBg2}" Padding="10,6"
+                BorderThickness="0" Visibility="Collapsed">
             <ScrollViewer HorizontalScrollBarVisibility="Hidden" VerticalScrollBarVisibility="Disabled">
                 <StackPanel x:Name="BookmarkStrip" Orientation="Horizontal"/>
             </ScrollViewer>
