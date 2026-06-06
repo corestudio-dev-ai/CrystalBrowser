@@ -6,8 +6,8 @@ namespace CrystalBrowser.App;
 /// <summary>User-configurable settings, persisted as JSON under %AppData%\CrystalBrowser.</summary>
 public class AppSettings
 {
-    /// <summary>"horizontal" (default) or "vertical" tab strip.</summary>
-    public string TabLayout { get; set; } = "horizontal";
+    /// <summary>"vertical" (default, Zen-style) or "horizontal" tab strip.</summary>
+    public string TabLayout { get; set; } = "vertical";
 
     /// <summary>On startup: "newtab" (home page) or "url" (open <see cref="StartupUrl"/>).</summary>
     public string Startup { get; set; } = "newtab";
@@ -15,11 +15,11 @@ public class AppSettings
     /// <summary>The page to open at startup when <see cref="Startup"/> is "url".</summary>
     public string StartupUrl { get; set; } = "";
 
-    /// <summary>Accent colour (hex) used to theme the UI.</summary>
-    public string Accent { get; set; } = "#4F6BFF";
+    /// <summary>Accent colour (hex) used to theme the UI. Defaults to Crystal orange (1.8).</summary>
+    public string Accent { get; set; } = "#FF7A1A";
 
     /// <summary>Window frame border colour (hex), user-changeable in Settings.</summary>
-    public string FrameColor { get; set; } = "#4F6BFF";
+    public string FrameColor { get; set; } = "#FF7A1A";
 
     /// <summary>UI theme key: "dark" (Crystal, default), "light", "midnight", "forest" or "rose".</summary>
     public string Theme { get; set; } = "dark";

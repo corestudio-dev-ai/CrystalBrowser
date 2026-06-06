@@ -158,6 +158,14 @@ public static class SettingsPage
   </div>
 
   <div class="card">
+    <h2>Saved passwords</h2>
+    <div class="sub" style="margin-bottom:8px;">Crystal autofill saves your logins for this profile and
+      fills them in automatically. Passwords are encrypted on this device with your Windows account.</div>
+    <div id="logins"></div>
+    <div class="note" id="noLogins">No saved passwords yet. When you sign in to a site, Crystal will offer to save it.</div>
+  </div>
+
+  <div class="card">
     <h2>Updates</h2>
     <div class="row"><span class="k">Automatic checks</span><span class="v">Every 60 seconds</span></div>
     <div class="upd">
@@ -193,8 +201,8 @@ public static class SettingsPage
   </div>
 </div>
 <script>
-  var ACCENTS = ['#4F6BFF','#00B4D8','#7C6CFF','#22C55E','#FF6E40','#FF3D7E'];
-  var FRAMES = ['#4F6BFF','#2B2F3A','#00B4D8','#7C6CFF','#22C55E','#FF3D7E'];
+  var ACCENTS = ['#FF7A1A','#4F6BFF','#00B4D8','#7C6CFF','#22C55E','#FF3D7E'];
+  var FRAMES = ['#FF7A1A','#2B2F3A','#4F6BFF','#7C6CFF','#22C55E','#FF3D7E'];
   var THEMES = {{ThemesJs}};
   function send(o){ if(window.chrome && window.chrome.webview) window.chrome.webview.postMessage(JSON.stringify(o)); }
 
@@ -321,10 +329,32 @@ public static class SettingsPage
     else { u.textContent=''; }
   };
 
+  // Saved passwords (Crystal autofill)
+  function removeLogin(origin, user){
+    if(confirm('Remove the saved password for '+(user||origin)+'?'))
+      send({type:'removeLogin', origin:origin, username:user});
+  }
+  window.crystalLogins = function(list){
+    var box=document.getElementById('logins'); box.innerHTML='';
+    var none=document.getElementById('noLogins');
+    list = list || [];
+    none.style.display = list.length ? 'none' : '';
+    list.forEach(function(l){
+      var row=document.createElement('div'); row.className='profrow';
+      var host=(l.origin||'').replace(/^https?:\/\//,'');
+      var left=document.createElement('div');
+      left.innerHTML='<span class="v">'+host+'</span><div class="sub">'+(l.username||'(no username)')+' &middot; ••••••••</div>';
+      var btn=document.createElement('button'); btn.className='btn ghost'; btn.textContent='Remove';
+      btn.onclick=function(){ removeLogin(l.origin, l.username); };
+      row.appendChild(left); row.appendChild(btn); box.appendChild(row);
+    });
+  };
+
   buildThemes();
   buildSwatches();
   buildFrameSwatches();
   send({type:'getSettings'});
+  send({type:'getLogins'});
 </script>
 </body>
 </html>

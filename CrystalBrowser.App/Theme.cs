@@ -16,10 +16,10 @@ public static class Theme
     /// <summary>All selectable themes, in display order. "dark" (Crystal) is the default.</summary>
     public static readonly IReadOnlyList<ThemeDef> All = new[]
     {
-        new ThemeDef("dark", "Crystal", false, "#7C6CFF", "#B39BFF",
-            "radial-gradient(1200px 700px at 50% -10%, #2a2350 0%, #16142b 55%, #0e0d1c 100%)",
-            "#0e0d1c", "#1b1933", "#13122a", "#0f0e22",
-            "#f0efff", "#7e7ba6", "#ffffff", "#b9b7da", "#1b1933"),
+        new ThemeDef("dark", "Crystal", false, "#FF7A1A", "#FFA85C",
+            "radial-gradient(1200px 700px at 50% -10%, #2a1c12 0%, #1a130d 55%, #0e0b08 100%)",
+            "#0e0b08", "#1f1813", "#17110c", "#130e0a",
+            "#fff3ea", "#a68a78", "#ffffff", "#dac6b9", "#1f1813"),
         new ThemeDef("light", "Light", true, "#5A47E0", "#7C6CFF",
             "#f3f2f8",
             "#f3f2f8", "#e7e5f1", "#eceaf5", "#ffffff",

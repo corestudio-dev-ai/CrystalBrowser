@@ -33,6 +33,8 @@ public partial class MainWindow : Window
     private readonly string? _profileDataDir;
 
     private readonly BookmarkStore _bookmarks;
+    // Crystal autofill: saved logins for the active profile (null in incognito — never saved there).
+    private readonly AutofillStore? _autofill;
     private readonly SystemMonitor _monitor = new();
     private readonly DispatcherTimer _statsTimer = new() { Interval = TimeSpan.FromSeconds(1) };
 
@@ -63,6 +65,7 @@ public partial class MainWindow : Window
         ProfileStore.EnsureActive(); // profiles are the storage unit — guarantee a valid one
         // Bookmarks and history both live in the active profile (cemented in 1.5.3).
         _bookmarks = new BookmarkStore(SettingsStore.Current.ActiveProfile);
+        if (!_incognito) _autofill = new AutofillStore(SettingsStore.Current.ActiveProfile);
         ApplyTheme(SettingsStore.Current.Theme);
         ApplyAccent(SettingsStore.Current.Accent);
         ApplyFrameColor(SettingsStore.Current.FrameColor);
@@ -209,7 +212,25 @@ public partial class MainWindow : Window
         public required Border Header;
         public required TextBlock Title;
         public bool IsHome;
+        public TabGroup? Group;
     }
+
+    /// <summary>An in-window tab group: a named, coloured, collapsible cluster in the vertical rail.</summary>
+    private sealed class TabGroup
+    {
+        public required string Name;
+        public required Color Color;
+        public bool Collapsed;
+    }
+
+    private readonly List<TabGroup> _groups = new();
+
+    // Colours cycled through as new groups are created.
+    private static readonly Color[] GroupColors =
+    {
+        Color.FromRgb(0xFF, 0x7A, 0x1A), Color.FromRgb(0x4F, 0x6B, 0xFF), Color.FromRgb(0x22, 0xC5, 0x5E),
+        Color.FromRgb(0xFF, 0x3D, 0x7E), Color.FromRgb(0x00, 0xB4, 0xD8), Color.FromRgb(0xB3, 0x9B, 0xFF),
+    };
 
     private WebView2? Current => _active?.View;
 
@@ -245,6 +266,14 @@ public partial class MainWindow : Window
         {
             case "getSettings":
                 await PushSettings(core);
+                break;
+            case "getLogins":
+                await PushLogins(core);
+                break;
+            case "removeLogin":
+                _autofill?.Remove(root.GetProperty("origin").GetString() ?? "",
+                    root.TryGetProperty("username", out var ru) ? ru.GetString() ?? "" : "");
+                await PushLogins(core);
                 break;
             case "setTabLayout":
                 s.TabLayout = root.GetProperty("value").GetString() ?? "horizontal";
@@ -407,6 +436,15 @@ public partial class MainWindow : Window
         await core.ExecuteScriptAsync($"window.crystalSettings && window.crystalSettings({payload})");
     }
 
+    // Push the saved-login list (origin + username only — never the password) to the Settings page.
+    private async Task PushLogins(CoreWebView2 core)
+    {
+        var list = _autofill?.Items.Select(l => new { origin = l.Origin, username = l.Username })
+                   ?? Enumerable.Empty<object>();
+        await core.ExecuteScriptAsync(
+            $"window.crystalLogins && window.crystalLogins({JsonSerializer.Serialize(list)})");
+    }
+
     // ----- Bundled uBlock Origin Lite -------------------------------------
 
     private bool _ublockLoaded;
@@ -471,10 +509,15 @@ public partial class MainWindow : Window
         var tab = new BrowserTab { View = web, Header = header, Title = title };
         _tabs.Add(tab);
         StyleTabHeader(tab, SettingsStore.Current.TabLayout);
-        ActiveTabStrip.Children.Add(header);
+        PlaceTab(tab);
 
         header.MouseLeftButtonUp += (_, _) => Activate(tab);
         close.Click += (s, e) => { e.Handled = true; CloseTab(tab); };
+
+        // Right-click a tab to group it (vertical rail shows the coloured group headers).
+        var menu = new ContextMenu();
+        menu.Opened += (_, _) => BuildTabMenu(menu, tab);
+        header.ContextMenu = menu;
 
         Activate(tab);
         InitWebView(tab, home, url, onboarding, whatsNew);
@@ -487,6 +530,8 @@ public partial class MainWindow : Window
         (tab.Header.Parent as Panel)?.Children.Remove(tab.Header);
         BrowserHost.Children.Remove(tab.View);
         tab.View.Dispose();
+        PruneEmptyGroups();
+        if (SettingsStore.Current.TabLayout == "vertical") RebuildVerticalStrip();
 
         if (_tabs.Count == 0) { Close(); return; }
         if (_active == tab)
@@ -543,15 +588,110 @@ public partial class MainWindow : Window
         TabSidebar.Visibility = vertical ? Visibility.Visible : Visibility.Collapsed;
         HorizontalTabBar.Visibility = vertical ? Visibility.Collapsed : Visibility.Visible;
 
-        var target = vertical ? VerticalTabStrip : HorizontalTabStrip;
         foreach (var t in _tabs)
         {
             (t.Header.Parent as Panel)?.Children.Remove(t.Header);
             StyleTabHeader(t, layout);
-            target.Children.Add(t.Header);
         }
+        if (vertical) RebuildVerticalStrip();
+        else foreach (var t in _tabs) HorizontalTabStrip.Children.Add(t.Header);
         if (_active != null) Activate(_active); // restore selected-tab highlight
     }
+
+    // Add a freshly created tab's header to the active strip (rebuilds the grouped vertical rail).
+    private void PlaceTab(BrowserTab tab)
+    {
+        if (SettingsStore.Current.TabLayout == "vertical") RebuildVerticalStrip();
+        else HorizontalTabStrip.Children.Add(tab.Header);
+    }
+
+    // Rebuild the vertical rail: ungrouped tabs first, then each group's coloured header
+    // followed by its (non-collapsed) tabs. Tab order within a section follows creation order.
+    private void RebuildVerticalStrip()
+    {
+        VerticalTabStrip.Children.Clear();
+        foreach (var t in _tabs)
+            (t.Header.Parent as Panel)?.Children.Remove(t.Header);
+
+        foreach (var t in _tabs.Where(t => t.Group == null))
+            VerticalTabStrip.Children.Add(t.Header);
+
+        foreach (var g in _groups)
+        {
+            VerticalTabStrip.Children.Add(BuildGroupHeader(g));
+            if (g.Collapsed) continue;
+            foreach (var t in _tabs.Where(t => t.Group == g))
+                VerticalTabStrip.Children.Add(t.Header);
+        }
+    }
+
+    // A clickable group header row: a colour dot, the name, and a collapse chevron.
+    private Border BuildGroupHeader(TabGroup g)
+    {
+        var dot = new System.Windows.Shapes.Ellipse
+        {
+            Width = 10, Height = 10, Fill = new SolidColorBrush(g.Color),
+            VerticalAlignment = VerticalAlignment.Center, Margin = new Thickness(0, 0, 8, 0)
+        };
+        var name = new TextBlock
+        {
+            Text = g.Name, FontSize = 12, FontWeight = FontWeights.SemiBold,
+            Foreground = (Brush)Resources["TextPrimary"], VerticalAlignment = VerticalAlignment.Center
+        };
+        var chevron = new TextBlock
+        {
+            Text = g.Collapsed ? "▸" : "▾", FontSize = 11, Foreground = (Brush)Resources["TextMuted"],
+            VerticalAlignment = VerticalAlignment.Center
+        };
+        var panel = new DockPanel { LastChildFill = false, Margin = new Thickness(12, 8, 10, 4) };
+        DockPanel.SetDock(chevron, Dock.Right);
+        panel.Children.Add(chevron);
+        panel.Children.Add(dot);
+        panel.Children.Add(name);
+        var border = new Border
+        {
+            Child = panel, Cursor = Cursors.Hand, CornerRadius = new CornerRadius(8),
+            Background = new SolidColorBrush(Color.FromArgb(0x22, g.Color.R, g.Color.G, g.Color.B)),
+            Margin = new Thickness(0, 4, 0, 2)
+        };
+        border.MouseLeftButtonUp += (_, _) => { g.Collapsed = !g.Collapsed; RebuildVerticalStrip(); if (_active != null) Activate(_active); };
+        return border;
+    }
+
+    // Populate a tab's right-click menu with the current grouping options.
+    private void BuildTabMenu(ContextMenu menu, BrowserTab tab)
+    {
+        menu.Items.Clear();
+        var add = new MenuItem { Header = "Add to new group…" };
+        add.Click += (_, _) => AddTabToNewGroup(tab);
+        menu.Items.Add(add);
+
+        foreach (var g in _groups.Where(g => g != tab.Group))
+        {
+            var item = new MenuItem { Header = $"Move to \"{g.Name}\"" };
+            item.Click += (_, _) => { tab.Group = g; RebuildVerticalStrip(); if (_active != null) Activate(_active); };
+            menu.Items.Add(item);
+        }
+        if (tab.Group != null)
+        {
+            var remove = new MenuItem { Header = "Remove from group" };
+            remove.Click += (_, _) => { tab.Group = null; PruneEmptyGroups(); RebuildVerticalStrip(); if (_active != null) Activate(_active); };
+            menu.Items.Add(remove);
+        }
+    }
+
+    private void AddTabToNewGroup(BrowserTab tab)
+    {
+        var g = new TabGroup { Name = $"Group {_groups.Count + 1}", Color = GroupColors[_groups.Count % GroupColors.Length] };
+        _groups.Add(g);
+        tab.Group = g;
+        if (SettingsStore.Current.TabLayout != "vertical")
+            SetStatus("Tab grouped — switch to vertical tabs (Settings) to see groups.");
+        RebuildVerticalStrip();
+        if (_active != null) Activate(_active);
+    }
+
+    private void PruneEmptyGroups() => _groups.RemoveAll(g => !_tabs.Any(t => t.Group == g));
 
     // ----- Appearance (accent colour) -------------------------------------
 
@@ -604,6 +744,10 @@ public partial class MainWindow : Window
 
         await EnsureUBlockAsync(core); // load the bundled ad blocker once per profile
 
+        // Crystal autofill: inject the form-watcher into every page (normal windows only).
+        if (_autofill != null)
+            try { await core.AddScriptToExecuteOnDocumentCreatedAsync(AutofillScript); } catch { }
+
         // Tell sites which scheme we prefer (Google etc. honour this natively).
         core.Profile.PreferredColorScheme = IsLight
             ? CoreWebView2PreferredColorScheme.Light
@@ -631,11 +775,13 @@ public partial class MainWindow : Window
             string msg;
             try { msg = e.TryGetWebMessageAsString(); } catch { return; }
             if (msg == "check-updates") { await ManualCheckForUpdatesAsync(core); return; }
-            // Everything else is a JSON settings message from the Settings page.
+            // Everything else is a JSON message (settings page or Crystal autofill).
             try
             {
                 using var doc = JsonDocument.Parse(msg);
                 var type = doc.RootElement.GetProperty("type").GetString();
+                if (type == "autofill-request") { await HandleAutofillRequest(doc.RootElement, core); return; }
+                if (type == "autofill-submit") { HandleAutofillSubmit(doc.RootElement); return; }
                 HandleSettingsMessage(type, doc.RootElement, core);
             }
             catch { /* not a settings message */ }
@@ -1108,6 +1254,111 @@ public partial class MainWindow : Window
             btn.Click += (_, _) => SetAi(key);
             AiPicker.Children.Add(btn);
         }
+    }
+
+    // ----- Crystal autofill -----------------------------------------------
+    // Saved logins live in the active profile, encrypted at rest (see AutofillStore). The
+    // injected script below watches every page for login forms: it asks the host to fill
+    // known credentials on load, and offers to save them when a login form is submitted.
+
+    // Pending credentials awaiting the user's "Save" decision (set when a login form is submitted).
+    private (string Origin, string Username, string Password)? _pendingLogin;
+
+    // Injected into every page (normal windows only). Posts JSON strings the host understands,
+    // and exposes window.crystalFill(user, pass) for the host to call back and fill the form.
+    private const string AutofillScript = """
+(function () {
+  if (window.__crystalAutofill) return; window.__crystalAutofill = true;
+  function pwFields() { return Array.prototype.slice.call(document.querySelectorAll('input[type=password]')); }
+  function userField(pw) {
+    // The text/email field most likely to be the username: the visible one just before the password.
+    var inputs = Array.prototype.slice.call(document.querySelectorAll('input'));
+    var idx = inputs.indexOf(pw), best = null;
+    for (var i = idx - 1; i >= 0; i--) {
+      var t = (inputs[i].type || 'text').toLowerCase();
+      if (t === 'text' || t === 'email' || t === 'tel' || (inputs[i].tagName === 'INPUT' && !inputs[i].type)) { best = inputs[i]; break; }
+    }
+    return best || inputs.find(function (e) { var t = (e.type||'').toLowerCase(); return t==='email'||t==='text'; });
+  }
+  function setVal(el, v) {
+    if (!el) return;
+    var d = Object.getOwnPropertyDescriptor(window.HTMLInputElement.prototype, 'value');
+    d && d.set ? d.set.call(el, v) : (el.value = v);
+    el.dispatchEvent(new Event('input', { bubbles: true }));
+    el.dispatchEvent(new Event('change', { bubbles: true }));
+  }
+  window.crystalFill = function (user, pass) {
+    var pws = pwFields(); if (!pws.length) return;
+    if (user) setVal(userField(pws[0]), user);
+    setVal(pws[0], pass);
+  };
+  function post(o) { try { window.chrome.webview.postMessage(JSON.stringify(o)); } catch (e) {} }
+  function requestFill() { if (pwFields().length) post({ type: 'autofill-request', origin: location.origin }); }
+  function onSubmit() {
+    var pws = pwFields(); if (!pws.length) return;
+    var pw = pws[0].value || ''; if (!pw) return;
+    var uf = userField(pws[0]);
+    post({ type: 'autofill-submit', origin: location.origin, username: uf ? (uf.value || '') : '', password: pw });
+  }
+  document.addEventListener('submit', onSubmit, true);
+  document.addEventListener('DOMContentLoaded', requestFill);
+  // Also handle JS-driven logins where the button isn't a real form submit.
+  document.addEventListener('click', function (e) {
+    var t = e.target; if (!t) return;
+    var btn = t.closest && t.closest('button, input[type=submit], [role=button]');
+    if (btn) setTimeout(onSubmit, 0);
+  }, true);
+  if (document.readyState !== 'loading') requestFill();
+})();
+""";
+
+    // The page asked for any saved login for its origin — fill it (matching the typed username if any).
+    private async Task HandleAutofillRequest(JsonElement root, CoreWebView2 core)
+    {
+        if (_autofill == null) return;
+        var origin = root.TryGetProperty("origin", out var o) ? o.GetString() : null;
+        if (string.IsNullOrEmpty(origin)) return;
+        var login = _autofill.Match(origin);
+        if (login == null) return;
+        var pass = _autofill.Reveal(login);
+        if (string.IsNullOrEmpty(pass)) return;
+        string J(string s) => JsonSerializer.Serialize(s);
+        await core.ExecuteScriptAsync($"window.crystalFill && window.crystalFill({J(login.Username)},{J(pass)})");
+    }
+
+    // A login form was submitted — offer to save it, unless we already have these exact credentials.
+    private void HandleAutofillSubmit(JsonElement root)
+    {
+        if (_autofill == null) return;
+        var origin = root.TryGetProperty("origin", out var o) ? o.GetString() : null;
+        var username = root.TryGetProperty("username", out var u) ? u.GetString() ?? "" : "";
+        var password = root.TryGetProperty("password", out var p) ? p.GetString() ?? "" : "";
+        if (string.IsNullOrEmpty(origin) || string.IsNullOrEmpty(password)) return;
+        if (_autofill.AlreadySaved(origin!, username, password)) return; // nothing new to save
+
+        _pendingLogin = (origin!, username, password);
+        var host = origin!.Replace("https://", "").Replace("http://", "");
+        SaveLoginText.Text = string.IsNullOrEmpty(username)
+            ? $"Save this password for {host}?"
+            : $"Save password for {username} on {host}?";
+        SaveLoginBar.Visibility = Visibility.Visible;
+    }
+
+    private void BtnSaveLogin_Click(object sender, RoutedEventArgs e)
+    {
+        if (_autofill != null && _pendingLogin is { } pl)
+        {
+            _autofill.Upsert(pl.Origin, pl.Username, pl.Password);
+            SetStatus("Password saved to Crystal autofill.");
+        }
+        _pendingLogin = null;
+        SaveLoginBar.Visibility = Visibility.Collapsed;
+    }
+
+    private void BtnSaveLoginDismiss_Click(object sender, RoutedEventArgs e)
+    {
+        _pendingLogin = null;
+        SaveLoginBar.Visibility = Visibility.Collapsed;
     }
 
     // ----- Edit mode (document.designMode) --------------------------------

@@ -16,6 +16,14 @@ public static class Changelog
 {
     public static readonly IReadOnlyList<ChangelogEntry> Entries = new[]
     {
+        new ChangelogEntry("1.8", new[]
+        {
+            "A big redesign inspired by Zen Browser: a calmer, cleaner look with vertical tabs now the default layout.",
+            "New default accent colour — a warm Crystal orange — used across the interface.",
+            "Crystal autofill: Crystal can now save your website logins and fill them in automatically. Passwords are encrypted on your device with your Windows account, and you can review or remove saved logins from Settings → Saved passwords.",
+            "Tab groups: right-click any tab to put it in a coloured, collapsible group in the vertical tab rail — great for keeping related tabs together.",
+            "The logo now carries a red accent, and the window close button turns black on hover to match the new dark look.",
+        }),
         new ChangelogEntry("1.7.4", new[]
         {
             "Older versions (1.0–1.3) are now marked unsupported. If you're on one of those builds, Crystal will gently remind you to update each time it opens — but it never blocks you, and those versions stay fully usable and downloadable.",

@@ -17,10 +17,10 @@
     </shell:WindowChrome.WindowChrome>
     <Window.Resources>
 
-        <!-- Accent colour (themed live from Settings). Calm indigo (1.7 redesign). -->
-        <SolidColorBrush x:Key="AccentBrush" Color="#4F6BFF"/>
+        <!-- Accent colour (themed live from Settings). Crystal orange (1.8 Zen redesign). -->
+        <SolidColorBrush x:Key="AccentBrush" Color="#FF7A1A"/>
         <!-- Window frame border colour (user-changeable via Settings). -->
-        <SolidColorBrush x:Key="FrameBrush" Color="#4F6BFF"/>
+        <SolidColorBrush x:Key="FrameBrush" Color="#FF7A1A"/>
 
         <!-- Theme surfaces (dark defaults; swapped live by ApplyTheme).
              Slight alpha lets the Win11 Mica backdrop show through the chrome. -->
@@ -95,7 +95,7 @@
             </Setter>
         </Style>
 
-        <!-- Close: an X. Neutral until hovered, then red with a white glyph. -->
+        <!-- Close (exit): an X. Neutral until hovered, then black with a white glyph (1.8 Zen). -->
         <Style TargetType="Button" x:Key="CloseBtn" BasedOn="{StaticResource CaptionBtnBase}">
             <Setter Property="Template">
                 <Setter.Value>
@@ -107,11 +107,11 @@
                         </Border>
                         <ControlTemplate.Triggers>
                             <Trigger Property="IsMouseOver" Value="True">
-                                <Setter TargetName="b" Property="Background" Value="#E81123"/>
+                                <Setter TargetName="b" Property="Background" Value="#000000"/>
                                 <Setter Property="Foreground" Value="#FFFFFF"/>
                             </Trigger>
                             <Trigger Property="IsPressed" Value="True">
-                                <Setter TargetName="b" Property="Background" Value="#C50F1F"/>
+                                <Setter TargetName="b" Property="Background" Value="#1a1a1a"/>
                             </Trigger>
                         </ControlTemplate.Triggers>
                     </ControlTemplate>
@@ -137,7 +137,7 @@
                         </Border>
                         <ControlTemplate.Triggers>
                             <Trigger Property="IsMouseOver" Value="True">
-                                <Setter TargetName="b" Property="Background" Value="#2a2845"/>
+                                <Setter TargetName="b" Property="Background" Value="#2a221b"/>
                             </Trigger>
                             <Trigger Property="IsEnabled" Value="False">
                                 <Setter Property="Foreground" Value="#4a4866"/>
@@ -205,6 +205,7 @@
             <RowDefinition Height="Auto"/>  <!-- update banner -->
             <RowDefinition Height="Auto"/>  <!-- default-browser nag -->
             <RowDefinition Height="Auto"/>  <!-- private loading bar -->
+            <RowDefinition Height="Auto"/>  <!-- save-password (autofill) bar -->
             <RowDefinition Height="*"/>      <!-- content -->
             <RowDefinition Height="Auto"/>  <!-- status bar -->
         </Grid.RowDefinitions>
@@ -221,8 +222,8 @@
             <StackPanel Grid.Column="0" Orientation="Horizontal"
                         VerticalAlignment="Center" Margin="12,0,8,0">
                 <Path Data="M5,3 H19 L22,9 L12,21 L2,9 Z" Stretch="Uniform" Width="15" Height="15"
-                      Stroke="#b39bff" StrokeThickness="1.4" StrokeLineJoin="Round"
-                      Fill="#3F7C6CFF" VerticalAlignment="Center" Margin="0,0,8,0"/>
+                      Stroke="#FF3B30" StrokeThickness="1.4" StrokeLineJoin="Round"
+                      Fill="#40FF3B30" VerticalAlignment="Center" Margin="0,0,8,0"/>
                 <TextBlock Text="Crystal" FontSize="13" FontWeight="SemiBold" Foreground="#e9e9ff"
                            VerticalAlignment="Center"/>
             </StackPanel>
@@ -303,10 +304,10 @@
                                 </Border>
                                 <ControlTemplate.Triggers>
                                     <Trigger Property="IsMouseOver" Value="True">
-                                        <Setter TargetName="eb" Property="Background" Value="#2a2845"/>
+                                        <Setter TargetName="eb" Property="Background" Value="#2a221b"/>
                                     </Trigger>
                                     <Trigger Property="IsChecked" Value="True">
-                                        <Setter TargetName="eb" Property="Background" Value="#7c6cff"/>
+                                        <Setter TargetName="eb" Property="Background" Value="#FF7A1A"/>
                                         <Setter Property="Foreground" Value="#ffffff"/>
                                     </Trigger>
                                 </ControlTemplate.Triggers>
@@ -421,7 +422,7 @@
                 <Border x:Name="LoadTrack" Grid.Column="1" Height="6" Background="#262445"
                         CornerRadius="3" VerticalAlignment="Center">
                     <Border x:Name="LoadFill" HorizontalAlignment="Left" Width="0"
-                            Background="#7c6cff" CornerRadius="3"/>
+                            Background="#FF7A1A" CornerRadius="3"/>
                 </Border>
                 <TextBlock x:Name="LoadPct" Grid.Column="2" Text="0%" Foreground="#ece9ff"
                            FontSize="12" Width="42" TextAlignment="Right"
@@ -429,8 +430,32 @@
             </Grid>
         </Border>
 
+        <!-- Save-password bar (Crystal autofill): offered after a login form is submitted. -->
+        <Border x:Name="SaveLoginBar" Grid.Row="7" Visibility="Collapsed" Padding="14,8"
+                Background="#2a1c10" BorderBrush="{DynamicResource AccentBrush}" BorderThickness="0,1,0,1">
+            <Grid>
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="Auto"/>
+                    <ColumnDefinition Width="*"/>
+                    <ColumnDefinition Width="Auto"/>
+                </Grid.ColumnDefinitions>
+                <TextBlock Grid.Column="0" Text="&#xE8D7;" FontFamily="Segoe MDL2 Assets" FontSize="14"
+                           Foreground="{DynamicResource AccentBrush}" VerticalAlignment="Center" Margin="0,0,10,0"/>
+                <TextBlock x:Name="SaveLoginText" Grid.Column="1" Foreground="#ffeede" FontSize="13"
+                           VerticalAlignment="Center" TextTrimming="CharacterEllipsis"
+                           Text="Save this password?"/>
+                <StackPanel Grid.Column="2" Orientation="Horizontal">
+                    <Button x:Name="BtnSaveLogin" Content="Save" Click="BtnSaveLogin_Click"
+                            Foreground="#ffffff" Background="{DynamicResource AccentBrush}" BorderThickness="0" Cursor="Hand"
+                            Padding="16,5" FontSize="13" Margin="0,0,8,0"/>
+                    <Button x:Name="BtnSaveLoginDismiss" Content="Not now" Click="BtnSaveLoginDismiss_Click"
+                            Style="{StaticResource IconBtn}" Width="70"/>
+                </StackPanel>
+            </Grid>
+        </Border>
+
         <!-- Body: vertical tab sidebar (left), web content (centre), AI companion (right) -->
-        <Grid Grid.Row="7">
+        <Grid Grid.Row="8">
             <Grid.ColumnDefinitions>
                 <ColumnDefinition Width="Auto"/>
                 <ColumnDefinition Width="*"/>
@@ -503,7 +528,7 @@
         </Grid>
 
         <!-- Status bar with live system monitor -->
-        <Border Grid.Row="8" Background="{DynamicResource ChromeBg2}" Padding="12,4">
+        <Border Grid.Row="9" Background="{DynamicResource ChromeBg2}" Padding="12,4">
             <Grid>
                 <Grid.ColumnDefinitions>
                     <ColumnDefinition Width="*"/>
@@ -516,14 +541,14 @@
                 <StackPanel Grid.Column="1" Orientation="Horizontal" VerticalAlignment="Center">
                     <TextBlock Text="CPU" Foreground="#6f6da0" FontSize="11" VerticalAlignment="Center" Margin="0,0,5,0"/>
                     <Border Width="60" Height="6" Background="#262445" CornerRadius="3" VerticalAlignment="Center">
-                        <Border x:Name="CpuBar" HorizontalAlignment="Left" Width="0" Background="#7c6cff" CornerRadius="3"/>
+                        <Border x:Name="CpuBar" HorizontalAlignment="Left" Width="0" Background="#FF7A1A" CornerRadius="3"/>
                     </Border>
                     <TextBlock x:Name="CpuText" Foreground="#cfceeb" FontSize="11" Width="34"
                                TextAlignment="Right" VerticalAlignment="Center" Margin="6,0,16,0" Text="0%"/>
 
                     <TextBlock Text="RAM" Foreground="#6f6da0" FontSize="11" VerticalAlignment="Center" Margin="0,0,5,0"/>
                     <Border Width="60" Height="6" Background="#262445" CornerRadius="3" VerticalAlignment="Center">
-                        <Border x:Name="RamBar" HorizontalAlignment="Left" Width="0" Background="#b39bff" CornerRadius="3"/>
+                        <Border x:Name="RamBar" HorizontalAlignment="Left" Width="0" Background="#FFA85C" CornerRadius="3"/>
                     </Border>
                     <TextBlock x:Name="RamText" Foreground="#cfceeb" FontSize="11"
                                VerticalAlignment="Center" Margin="6,0,0,0" Text="0%"/>
