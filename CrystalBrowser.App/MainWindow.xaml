@@ -173,9 +173,10 @@
         </ControlTemplate>
     </Window.Resources>
 
-    <!-- Borderless window frame (2.0 ULTRA): no colour border, transparent background so the
-         Win11 Mica backdrop shows through; the OS rounds the real window corners. -->
-    <Border x:Name="FrameBorder" BorderThickness="0" Background="Transparent">
+    <!-- Borderless window frame (2.0 ULTRA): no colour border. A solid themed backing so the
+         chrome reads consistently light on any wallpaper (the Mica backdrop tints from the
+         desktop, which turned transparent areas near-black); the OS still rounds the corners. -->
+    <Border x:Name="FrameBorder" BorderThickness="0" Background="{DynamicResource WindowBg}">
     <Grid x:Name="RootPadding">
         <Grid.RowDefinitions>
             <RowDefinition Height="Auto"/>  <!-- title bar -->
@@ -191,7 +192,7 @@
         </Grid.RowDefinitions>
 
         <!-- Title bar: logo (left), drag area, window controls (right) -->
-        <Grid Grid.Row="0" Background="Transparent">
+        <Grid Grid.Row="0" Background="{DynamicResource ChromeBg}">
             <Grid.ColumnDefinitions>
                 <ColumnDefinition Width="Auto"/>
                 <ColumnDefinition Width="Auto"/>

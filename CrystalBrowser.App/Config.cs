@@ -29,7 +29,7 @@ public static class Config
     /// bumped. The updater treats a release whose published patch level is higher than this — at the
     /// same version — as an available update, so emergency patches reach existing installs.
     /// </summary>
-    public const int PatchLevel = 0;
+    public const int PatchLevel = 1;
 
     /// <summary>
     /// GitHub repo (owner/name) whose Releases the in-app updater checks. Set this to your

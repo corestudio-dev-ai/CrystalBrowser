@@ -24,6 +24,7 @@ public static class Changelog
             "Frosted glass everywhere: the toolbar, tab rail and panels are translucent so your desktop gently shows through.",
             "A redesigned Settings page that matches the new Ultra look.",
             "Performance: retired the old animated background and trimmed needless work while you browse, so Crystal feels lighter and quicker.",
+            "Patch 1: fixed a dark/black title bar that appeared over dark desktop wallpapers — the window chrome now stays consistently light.",
         }),
         new ChangelogEntry("1.8.2", new[]
         {
