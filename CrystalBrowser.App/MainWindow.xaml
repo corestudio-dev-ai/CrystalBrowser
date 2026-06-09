@@ -7,32 +7,34 @@
         UseLayoutRounding="True" TextOptions.TextFormattingMode="Display"
         SourceInitialized="Window_SourceInitialized">
     <shell:WindowChrome.WindowChrome>
-        <!-- Borderless custom chrome (2.0 ULTRA). GlassFrameThickness="0" keeps Windows from
+        <!-- Borderless custom chrome (2.1 AERO). GlassFrameThickness="0" keeps Windows from
              drawing its own native caption buttons; the rounded window corners come from the
-             DWMWA_WINDOW_CORNER_PREFERENCE call in Window_SourceInitialized (Win11), and Mica
-             renders the frosted backdrop. CornerRadius here is 0 — the OS rounds the real frame. -->
+             DWMWA_WINDOW_CORNER_PREFERENCE call in Window_SourceInitialized (Win11), and the
+             acrylic backdrop renders the real blur-behind glass. CornerRadius here is 0 — the
+             OS rounds the real frame. -->
         <shell:WindowChrome CaptionHeight="42" CornerRadius="0"
                             GlassFrameThickness="0" ResizeBorderThickness="6"
                             UseAeroCaptionButtons="False"/>
     </shell:WindowChrome.WindowChrome>
     <Window.Resources>
 
-        <!-- Accent colour (themed live from Settings). Ultra blue (2.0). -->
+        <!-- Accent colour (themed live from Settings). Crystal blue. -->
         <SolidColorBrush x:Key="AccentBrush" Color="#2F6BFF"/>
-        <!-- Kept for settings compatibility; the 2.0 frame is borderless so this is unused visually. -->
+        <!-- Kept for settings compatibility; the frame is borderless so this is unused visually. -->
         <SolidColorBrush x:Key="FrameBrush" Color="#2F6BFF"/>
 
-        <!-- Theme surfaces (Ultra light defaults; swapped live by ApplyTheme).
-             The #AARRGGBB alpha lets the Win11 Mica backdrop frost through the chrome. -->
-        <SolidColorBrush x:Key="WindowBg" Color="#f5f8fe"/>
-        <SolidColorBrush x:Key="ChromeBg" Color="#CCFFFFFF"/>
-        <SolidColorBrush x:Key="ChromeBg2" Color="#A6FFFFFF"/>
-        <SolidColorBrush x:Key="SurfaceBg" Color="#E6FFFFFF"/>
+        <!-- Theme surfaces (Aero glass defaults; swapped live by ApplyTheme).
+             The #AARRGGBB alpha lets the Win11 acrylic backdrop blur the desktop through
+             every panel — the 2.1 AERO see-through look. -->
+        <SolidColorBrush x:Key="WindowBg" Color="#C9FFFFFF"/>
+        <SolidColorBrush x:Key="ChromeBg" Color="#A6FFFFFF"/>
+        <SolidColorBrush x:Key="ChromeBg2" Color="#8CFFFFFF"/>
+        <SolidColorBrush x:Key="SurfaceBg" Color="#D9FFFFFF"/>
         <SolidColorBrush x:Key="TextPrimary" Color="#0f1b2d"/>
         <SolidColorBrush x:Key="TextMuted" Color="#5a6b80"/>
         <SolidColorBrush x:Key="TabTextActive" Color="#0f1b2d"/>
         <SolidColorBrush x:Key="TabTextInactive" Color="#5a6b80"/>
-        <SolidColorBrush x:Key="TabActiveBg" Color="#FFFFFFFF"/>
+        <SolidColorBrush x:Key="TabActiveBg" Color="#F2FFFFFF"/>
 
         <!-- Hairline used to separate frosted panels — adapts to light/dark via alpha gray. -->
         <SolidColorBrush x:Key="Hairline" Color="#1F5A6B80"/>
@@ -122,7 +124,7 @@
         </Style>
 
 
-        <!-- Icon / nav button — rounded, frosted neutral hover (works on every theme). -->
+        <!-- Icon / nav button — rounded, with a smoothly fading frosted hover (2.1 AERO). -->
         <Style TargetType="Button" x:Key="IconBtn">
             <Setter Property="Foreground" Value="{DynamicResource TextPrimary}"/>
             <Setter Property="Background" Value="Transparent"/>
@@ -134,15 +136,34 @@
             <Setter Property="Template">
                 <Setter.Value>
                     <ControlTemplate TargetType="Button">
-                        <Border x:Name="b" CornerRadius="10" Background="{TemplateBinding Background}">
+                        <Grid>
+                            <Border x:Name="b" CornerRadius="10" Background="{TemplateBinding Background}"/>
+                            <Border x:Name="hover" CornerRadius="10" Background="#26808080" Opacity="0"/>
                             <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
-                        </Border>
+                        </Grid>
                         <ControlTemplate.Triggers>
                             <Trigger Property="IsMouseOver" Value="True">
-                                <Setter TargetName="b" Property="Background" Value="#26808080"/>
+                                <Trigger.EnterActions>
+                                    <BeginStoryboard>
+                                        <Storyboard>
+                                            <DoubleAnimation Storyboard.TargetName="hover"
+                                                             Storyboard.TargetProperty="Opacity"
+                                                             To="1" Duration="0:0:0.12"/>
+                                        </Storyboard>
+                                    </BeginStoryboard>
+                                </Trigger.EnterActions>
+                                <Trigger.ExitActions>
+                                    <BeginStoryboard>
+                                        <Storyboard>
+                                            <DoubleAnimation Storyboard.TargetName="hover"
+                                                             Storyboard.TargetProperty="Opacity"
+                                                             To="0" Duration="0:0:0.20"/>
+                                        </Storyboard>
+                                    </BeginStoryboard>
+                                </Trigger.ExitActions>
                             </Trigger>
                             <Trigger Property="IsPressed" Value="True">
-                                <Setter TargetName="b" Property="Background" Value="#3D808080"/>
+                                <Setter TargetName="hover" Property="Background" Value="#3D808080"/>
                             </Trigger>
                             <Trigger Property="IsEnabled" Value="False">
                                 <Setter Property="Opacity" Value="0.4"/>
@@ -173,9 +194,9 @@
         </ControlTemplate>
     </Window.Resources>
 
-    <!-- Borderless window frame (2.0 ULTRA): no colour border. A solid themed backing so the
-         chrome reads consistently light on any wallpaper (the Mica backdrop tints from the
-         desktop, which turned transparent areas near-black); the OS still rounds the corners. -->
+    <!-- Borderless window frame (2.1 AERO): no colour border. The backing is translucent white
+         over the acrylic backdrop, so the desktop genuinely blurs through while the heavy white
+         frosting keeps the chrome light and legible on any wallpaper. The OS rounds the corners. -->
     <Border x:Name="FrameBorder" BorderThickness="0" Background="{DynamicResource WindowBg}">
     <Grid x:Name="RootPadding">
         <Grid.RowDefinitions>
@@ -209,7 +230,7 @@
                            Foreground="{DynamicResource TextPrimary}" VerticalAlignment="Center"/>
                 <Border CornerRadius="7" Background="{DynamicResource AccentBrush}" Padding="6,1"
                         Margin="8,0,0,0" VerticalAlignment="Center">
-                    <TextBlock Text="ULTRA" FontSize="10" FontWeight="Bold" Foreground="#ffffff"
+                    <TextBlock Text="AERO" FontSize="10" FontWeight="Bold" Foreground="#ffffff"
                                VerticalAlignment="Center"/>
                 </Border>
             </StackPanel>
@@ -261,7 +282,7 @@
                     <Button x:Name="BtnHome" Style="{StaticResource IconBtn}" Content="&#8962;" Click="BtnHome_Click" ToolTip="Home"/>
                 </StackPanel>
 
-                <Border Grid.Column="1" Background="{DynamicResource SurfaceBg}" CornerRadius="19" Margin="10,0" Padding="16,0"
+                <Border x:Name="AddressShell" Grid.Column="1" Background="{DynamicResource SurfaceBg}" CornerRadius="19" Margin="10,0" Padding="16,0"
                         BorderBrush="{DynamicResource Hairline}" BorderThickness="1">
                     <Grid>
                         <Grid.ColumnDefinitions>

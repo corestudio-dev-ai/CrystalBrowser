@@ -20,7 +20,7 @@ public static class Config
     public static string SearchName(string engine) => engine == "duckduckgo" ? "DuckDuckGo" : "Google";
 
     /// <summary>This build's version. Bump it each release (and tag the GitHub release to match).</summary>
-    public const string Version = "2.0";
+    public const string Version = "2.1";
 
     /// <summary>
     /// Emergency-patch level *within* the current <see cref="Version"/>. Starts at 0 for a fresh
@@ -29,7 +29,7 @@ public static class Config
     /// bumped. The updater treats a release whose published patch level is higher than this — at the
     /// same version — as an available update, so emergency patches reach existing installs.
     /// </summary>
-    public const int PatchLevel = 1;
+    public const int PatchLevel = 0;
 
     /// <summary>
     /// GitHub repo (owner/name) whose Releases the in-app updater checks. Set this to your

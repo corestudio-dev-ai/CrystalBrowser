@@ -21,8 +21,9 @@ public class AppSettings
     /// <summary>Window frame border colour (hex), user-changeable in Settings.</summary>
     public string FrameColor { get; set; } = "#2F6BFF";
 
-    /// <summary>UI theme key: "ultra" (default light frosted glass), "light" or "dark".</summary>
-    public string Theme { get; set; } = "ultra";
+    /// <summary>UI theme key: "aero" (default see-through glass) or "light". Crystal is
+    /// light-only as of 2.1 — old "dark"/"ultra" values migrate to "aero" on launch.</summary>
+    public string Theme { get; set; } = "aero";
 
     /// <summary>Search engine key: "google" (default) or "duckduckgo".</summary>
     public string SearchEngine { get; set; } = "google";

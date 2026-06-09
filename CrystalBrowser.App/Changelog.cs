@@ -16,6 +16,15 @@ public static class Changelog
 {
     public static readonly IReadOnlyList<ChangelogEntry> Entries = new[]
     {
+        new ChangelogEntry("2.1", new[]
+        {
+            "Crystal Browser 2.1 AERO — a complete redesign around real see-through glass.",
+            "True Aero transparency: the window now uses Windows 11's acrylic backdrop, so your desktop genuinely blurs through the whole interface — not just a tint.",
+            "New animations everywhere: the window fades in on launch, new tabs glide into the rail, the selected-tab highlight cross-fades, toolbar buttons fade on hover, the AI sidebar slides open, notification bars drop in, and the address bar glows when focused.",
+            "A redesigned home page: bright frosted-glass cards over softly drifting colour orbs, with smooth entrance animations and a shimmering Crystal AERO wordmark.",
+            "Crystal is now light-only: dark mode has been retired. Pick between the new default \"Aero\" glass theme and a flat \"Light\" theme in Settings — anyone on the old Dark or Ultra themes is moved to Aero automatically.",
+            "Vertical tabs stay front and centre — the tab rail is unchanged and still the heart of the layout.",
+        }),
         new ChangelogEntry("2.0", new[]
         {
             "Crystal Browser 2.0 ULTRA — a complete redesign with a brand-new look.",

@@ -22,7 +22,7 @@ public partial class MainWindow : Window
     private readonly List<BrowserTab> _tabs = new();
     private BrowserTab? _active;
 
-    // Shared WebView2 environment configured to force dark mode on every page.
+    // Shared WebView2 environment (one per window, lazily created).
     private CoreWebView2Environment? _env;
     private Task<CoreWebView2Environment>? _envTask;
 
@@ -64,6 +64,14 @@ public partial class MainWindow : Window
         _incognito = tor;
         ProfileStore.EnsureActive(); // profiles are the storage unit — guarantee a valid one
         SettingsStore.Current.TabLayout = "vertical"; // 1.8.1: tabs always live in the vertical rail
+        // 2.1 AERO: Crystal is light-only — migrate retired theme keys ("dark", "ultra") to Aero.
+        var themeKey = Theme.Get(SettingsStore.Current.Theme).Key;
+        if (themeKey != SettingsStore.Current.Theme)
+        {
+            SettingsStore.Current.Theme = themeKey;
+            SettingsStore.Current.Accent = Theme.Get(themeKey).Accent;
+            SettingsStore.Save();
+        }
         // Bookmarks and history both live in the active profile (cemented in 1.5.3).
         _bookmarks = new BookmarkStore(SettingsStore.Current.ActiveProfile);
         if (!_incognito) _autofill = new AutofillStore(SettingsStore.Current.ActiveProfile);
@@ -90,9 +98,16 @@ public partial class MainWindow : Window
         _updateTimer.Tick += async (_, _) => await CheckForUpdatesAsync();
         Closed += (_, _) => { _loadTimer.Stop(); _updateTimer.Stop(); _monitor.Dispose(); CleanupPrivateProfile(); };
         StateChanged += OnStateChanged;
+        // 2.1 AERO: address-bar focus glow.
+        AddressBar.GotKeyboardFocus += (_, _) => AnimateAddressGlow(true);
+        AddressBar.LostKeyboardFocus += (_, _) => AnimateAddressGlow(false);
         Loaded += (_, _) =>
         {
             FitToScreen();
+            // 2.1 AERO: gentle window entrance — fade in while the chrome drifts up into place.
+            BeginAnimation(OpacityProperty, new DoubleAnimation(0, 1, TimeSpan.FromMilliseconds(320))
+            { EasingFunction = new CubicEase { EasingMode = EasingMode.EaseOut } });
+            FadeSlideIn(RootPadding, fromY: 12, ms: 380);
             ApplyTabLayout(SettingsStore.Current.TabLayout);
             RenderBookmarks();
             var startupUrl = StartupTarget();
@@ -152,7 +167,7 @@ public partial class MainWindow : Window
         new MainWindow(tor: true).Show();
     }
 
-    // ----- Win11 Mica transparency ----------------------------------------
+    // ----- Win11 Aero acrylic transparency ---------------------------------
 
     [System.Runtime.InteropServices.DllImport("dwmapi.dll")]
     private static extern int DwmSetWindowAttribute(IntPtr hwnd, int attr, ref int value, int size);
@@ -161,20 +176,21 @@ public partial class MainWindow : Window
     private const int DwmwaWindowCornerPreference = 33; // Win11 — round the real window corners
     private const int DwmwaSystemBackdropType = 38;     // Win11 22621+
     private const int CornerRound = 2;                  // DWMWCP_ROUND
-    private const int BackdropMica = 2;
+    private const int BackdropAcrylic = 3;              // DWMSBT_TRANSIENTWINDOW — real blur-behind glass
 
-    // Apply the Mica backdrop + rounded corners (and the matching light/dark title frame) once the
-    // HWND exists. No-op on older Windows — the calls simply fail and we fall back to plain chrome.
+    // Apply the Aero acrylic backdrop + rounded corners (2.1 AERO: the desktop genuinely blurs
+    // through the chrome) once the HWND exists. The window chrome is always light. No-op on
+    // older Windows — the calls simply fail and we fall back to plain chrome.
     private void Window_SourceInitialized(object? sender, EventArgs e)
     {
         try
         {
             var hwnd = new System.Windows.Interop.WindowInteropHelper(this).Handle;
-            int dark = IsLight ? 0 : 1;
+            int dark = 0; // Crystal is light-only as of 2.1
             DwmSetWindowAttribute(hwnd, DwmwaUseImmersiveDarkMode, ref dark, sizeof(int));
-            int corner = CornerRound; // smooth rounded frame (2.0 ULTRA), no square Windows chrome
+            int corner = CornerRound; // smooth rounded frame, no square Windows chrome
             DwmSetWindowAttribute(hwnd, DwmwaWindowCornerPreference, ref corner, sizeof(int));
-            int backdrop = BackdropMica;
+            int backdrop = BackdropAcrylic;
             DwmSetWindowAttribute(hwnd, DwmwaSystemBackdropType, ref backdrop, sizeof(int));
         }
         catch { /* pre-Win11 — keep the flat look */ }
@@ -230,9 +246,8 @@ public partial class MainWindow : Window
 
     private readonly List<TabGroup> _groups = new();
 
-    // Subtle translucent-gray tab hover highlight — reads correctly on light and dark themes.
-    private static readonly Brush TabHoverBrush =
-        new SolidColorBrush(Color.FromArgb(0x22, 0x80, 0x80, 0x80));
+    // Subtle translucent-gray tab hover highlight, cross-faded in by AnimateBg (2.1).
+    private static readonly Color TabHoverColor = Color.FromArgb(0x22, 0x80, 0x80, 0x80);
 
     // Colours cycled through as new groups are created.
     private static readonly Color[] GroupColors =
@@ -243,10 +258,7 @@ public partial class MainWindow : Window
 
     private WebView2? Current => _active?.View;
 
-    /// <summary>
-    /// Lazily create one shared WebView2 environment with Chromium's force-dark feature
-    /// enabled, so every page — even sites with no dark theme — renders in dark mode.
-    /// </summary>
+    /// <summary>Lazily create the one shared WebView2 environment (one per window).</summary>
     private Task<CoreWebView2Environment> GetEnvironmentAsync()
     {
         if (_env != null) return Task.FromResult(_env);
@@ -255,9 +267,8 @@ public partial class MainWindow : Window
 
     private async Task<CoreWebView2Environment> CreateEnvironmentAsync()
     {
-        // Force-dark every page only in the dark theme; let pages render normally in light.
-        var args = IsLight ? "" : "--enable-features=WebContentsForceDark";
-        var options = new CoreWebView2EnvironmentOptions { AdditionalBrowserArguments = args };
+        // 2.1: Crystal is light-only — pages always render normally (force-dark retired).
+        var options = new CoreWebView2EnvironmentOptions();
         options.AreBrowserExtensionsEnabled = true; // needed to load the bundled uBlock Origin Lite
         // Incognito windows use an isolated, ephemeral folder; normal windows use the active
         // Crystal profile's folder so each profile's cookies/logins stay separate.
@@ -316,7 +327,7 @@ public partial class MainWindow : Window
                 ResetSettingsAndRestart(core);
                 break;
             case "setTheme":
-                s.Theme = root.GetProperty("value").GetString() ?? "dark";
+                s.Theme = root.GetProperty("value").GetString() ?? "aero";
                 s.Accent = Theme.Get(s.Theme).Accent; // each theme carries its own accent
                 SettingsStore.Save();
                 ApplyTheme(s.Theme);  // chrome updates live
@@ -523,10 +534,10 @@ public partial class MainWindow : Window
         header.MouseLeftButtonUp += (_, _) => Activate(tab);
         close.Click += (s, e) => { e.Handled = true; CloseTab(tab); };
 
-        // Hover: a subtle translucent-gray highlight that works on every theme. We deliberately
-        // do NOT change the title colour, so the text stays readable (no white-on-white).
-        header.MouseEnter += (_, _) => { if (_active != tab) tab.Header.Background = TabHoverBrush; };
-        header.MouseLeave += (_, _) => { if (_active != tab) tab.Header.Background = Brushes.Transparent; };
+        // Hover: a subtle translucent-gray highlight, smoothly cross-faded (2.1 AERO). We
+        // deliberately do NOT change the title colour, so the text stays readable.
+        header.MouseEnter += (_, _) => { if (_active != tab) AnimateBg(tab.Header, TabHoverColor); };
+        header.MouseLeave += (_, _) => { if (_active != tab) AnimateBg(tab.Header, Colors.Transparent, 200); };
 
         // Right-click a tab to group it (vertical rail shows the coloured group headers).
         var menu = new ContextMenu();
@@ -534,6 +545,7 @@ public partial class MainWindow : Window
         header.ContextMenu = menu;
 
         Activate(tab);
+        FadeSlideIn(header, fromX: -12); // 2.1 AERO: new tabs glide into the rail
         InitWebView(tab, home, url, onboarding, whatsNew);
     }
 
@@ -555,11 +567,13 @@ public partial class MainWindow : Window
     private void Activate(BrowserTab tab)
     {
         _active = tab;
+        var activeBg = ((SolidColorBrush)Resources["TabActiveBg"]).Color;
         foreach (var t in _tabs)
         {
             bool on = t == tab;
             t.View.Visibility = on ? Visibility.Visible : Visibility.Collapsed;
-            t.Header.Background = on ? (Brush)Resources["TabActiveBg"] : Brushes.Transparent;
+            // 2.1 AERO: the selection highlight cross-fades between tabs instead of snapping.
+            AnimateBg(t.Header, on ? activeBg : Colors.Transparent);
             t.Title.Foreground = on
                 ? (Brush)Resources["TabTextActive"] : (Brush)Resources["TabTextInactive"];
         }
@@ -745,7 +759,63 @@ public partial class MainWindow : Window
         Set("TabActiveBg",     t.TabActiveBg);
     }
 
-    private bool IsLight => Theme.IsLight(SettingsStore.Current.Theme);
+    // ----- Animations (2.1 AERO) -------------------------------------------
+
+    // Fade an element in while sliding it from a small offset — the shared entrance animation.
+    private static void FadeSlideIn(FrameworkElement el, double fromX = 0, double fromY = 0, int ms = 220)
+    {
+        var ease = new CubicEase { EasingMode = EasingMode.EaseOut };
+        var tt = new TranslateTransform(fromX, fromY);
+        el.RenderTransform = tt;
+        el.BeginAnimation(OpacityProperty,
+            new DoubleAnimation(0, 1, TimeSpan.FromMilliseconds(ms)) { EasingFunction = ease });
+        if (fromX != 0) tt.BeginAnimation(TranslateTransform.XProperty,
+            new DoubleAnimation(fromX, 0, TimeSpan.FromMilliseconds(ms)) { EasingFunction = ease });
+        if (fromY != 0) tt.BeginAnimation(TranslateTransform.YProperty,
+            new DoubleAnimation(fromY, 0, TimeSpan.FromMilliseconds(ms)) { EasingFunction = ease });
+    }
+
+    // Smoothly cross-fade a border's background colour (always on a fresh local brush, so the
+    // shared theme resource brushes are never mutated by an animation).
+    private static void AnimateBg(Border b, Color to, int ms = 140)
+    {
+        var from = (b.Background as SolidColorBrush)?.Color ?? Colors.Transparent;
+        var brush = new SolidColorBrush(from);
+        b.Background = brush;
+        brush.BeginAnimation(SolidColorBrush.ColorProperty,
+            new ColorAnimation(to, TimeSpan.FromMilliseconds(ms)) { EasingFunction = new QuadraticEase() });
+    }
+
+    // Reveal a notification bar with a gentle drop-in (shared by the update / save-password /
+    // default-browser / unsupported bars).
+    private static void ShowBanner(Border bar)
+    {
+        if (bar.Visibility == Visibility.Visible) return;
+        bar.Visibility = Visibility.Visible;
+        FadeSlideIn(bar, fromY: -10, ms: 260);
+    }
+
+    // Address-bar focus glow: the pill's border melts to the accent colour and gains a soft halo.
+    private void AnimateAddressGlow(bool on)
+    {
+        var accent = ((SolidColorBrush)Resources["AccentBrush"]).Color;
+        var idle = ((SolidColorBrush)Resources["Hairline"]).Color;
+        var from = (AddressShell.BorderBrush as SolidColorBrush)?.Color ?? idle;
+        var brush = new SolidColorBrush(from);
+        AddressShell.BorderBrush = brush;
+        brush.BeginAnimation(SolidColorBrush.ColorProperty,
+            new ColorAnimation(on ? accent : idle, TimeSpan.FromMilliseconds(180)));
+
+        if (AddressShell.Effect is not System.Windows.Media.Effects.DropShadowEffect glow)
+        {
+            glow = new System.Windows.Media.Effects.DropShadowEffect
+            { Color = accent, BlurRadius = 14, ShadowDepth = 0, Opacity = 0 };
+            AddressShell.Effect = glow;
+        }
+        glow.Color = accent;
+        glow.BeginAnimation(System.Windows.Media.Effects.DropShadowEffect.OpacityProperty,
+            new DoubleAnimation(on ? 0.45 : 0, TimeSpan.FromMilliseconds(180)));
+    }
 
     private async void InitWebView(BrowserTab tab, bool home, string? url, bool onboarding = false, bool whatsNew = false)
     {
@@ -762,10 +832,8 @@ public partial class MainWindow : Window
         if (_autofill != null)
             try { await core.AddScriptToExecuteOnDocumentCreatedAsync(AutofillScript); } catch { }
 
-        // Tell sites which scheme we prefer (Google etc. honour this natively).
-        core.Profile.PreferredColorScheme = IsLight
-            ? CoreWebView2PreferredColorScheme.Light
-            : CoreWebView2PreferredColorScheme.Dark;
+        // Tell sites which scheme we prefer (Google etc. honour this natively). Always light (2.1).
+        core.Profile.PreferredColorScheme = CoreWebView2PreferredColorScheme.Light;
 
         core.DocumentTitleChanged += (_, _) =>
             tab.Title.Text = string.IsNullOrWhiteSpace(core.DocumentTitle) ? "New Tab" : core.DocumentTitle;
@@ -902,7 +970,7 @@ public partial class MainWindow : Window
             case UpdateStatus.Available:
                 _pendingUpdate = result.Info!;
                 UpdateText.Text = $"Crystal Browser {VerLabel(result.Info!.Version, result.Info!.Patch)} is available — you have {VerLabel(Config.Version, Config.PatchLevel)}.";
-                UpdateBar.Visibility = Visibility.Visible;
+                ShowBanner(UpdateBar);
                 _updateTimer.Stop(); // found it — stop pinging
                 break;
             case UpdateStatus.UpToDate:
@@ -934,7 +1002,7 @@ public partial class MainWindow : Window
         var info = result.Info!;
         _pendingUpdate = info;
         UpdateText.Text = $"Crystal Browser {VerLabel(info.Version, info.Patch)} is available — you have {VerLabel(Config.Version, Config.PatchLevel)}.";
-        UpdateBar.Visibility = Visibility.Visible;
+        ShowBanner(UpdateBar);
         _updateTimer.Stop();
 
         // Show the version + a direct link, then download the installer right away.
@@ -982,7 +1050,7 @@ public partial class MainWindow : Window
     private void ShowUnsupportedNagIfNeeded()
     {
         if (SupportPolicy.IsUnsupported(Config.Version))
-            UnsupportedBar.Visibility = Visibility.Visible;
+            ShowBanner(UnsupportedBar);
     }
 
     private async void BtnUnsupportedUpdate_Click(object sender, RoutedEventArgs e)
@@ -1021,7 +1089,7 @@ public partial class MainWindow : Window
     private void ShowDefaultBrowserNag()
     {
         if (DefaultBrowser.ShouldNag())
-            DefaultBar.Visibility = Visibility.Visible;
+            ShowBanner(DefaultBar);
     }
 
     private void BtnSetDefault_Click(object sender, RoutedEventArgs e)
@@ -1186,16 +1254,40 @@ public partial class MainWindow : Window
     private bool _claudeUnlocked;   // cached: is the user signed in to claude.ai in this profile?
 
     private void BtnAi_Click(object sender, RoutedEventArgs e) => ToggleAiSidebar();
-    private void BtnAiClose_Click(object sender, RoutedEventArgs e) => AiSidebar.Visibility = Visibility.Collapsed;
+    private void BtnAiClose_Click(object sender, RoutedEventArgs e) => SlideAiSidebar(false);
+
+    // 2.1 AERO: the AI sidebar slides open and closed instead of popping.
+    private void SlideAiSidebar(bool open)
+    {
+        var ease = new CubicEase { EasingMode = open ? EasingMode.EaseOut : EasingMode.EaseIn };
+        if (open)
+        {
+            AiSidebar.Visibility = Visibility.Visible;
+            AiSidebar.BeginAnimation(WidthProperty,
+                new DoubleAnimation(0, 400, TimeSpan.FromMilliseconds(260)) { EasingFunction = ease });
+        }
+        else
+        {
+            var anim = new DoubleAnimation(AiSidebar.ActualWidth, 0, TimeSpan.FromMilliseconds(200))
+            { EasingFunction = ease };
+            anim.Completed += (_, _) =>
+            {
+                AiSidebar.Visibility = Visibility.Collapsed;
+                AiSidebar.BeginAnimation(WidthProperty, null); // release so layout owns Width again
+                AiSidebar.Width = 400;
+            };
+            AiSidebar.BeginAnimation(WidthProperty, anim);
+        }
+    }
 
     private async void ToggleAiSidebar()
     {
         if (AiSidebar.Visibility == Visibility.Visible)
         {
-            AiSidebar.Visibility = Visibility.Collapsed;
+            SlideAiSidebar(false);
             return;
         }
-        AiSidebar.Visibility = Visibility.Visible;
+        SlideAiSidebar(true);
         await RefreshClaudeLockAsync();   // know whether Claude is usable before we render/navigate
         await EnsureAiViewAsync();
         ShowSelectedAi();
@@ -1394,7 +1486,7 @@ public partial class MainWindow : Window
         SaveLoginText.Text = string.IsNullOrEmpty(username)
             ? $"Save this password for {host}?"
             : $"Save password for {username} on {host}?";
-        SaveLoginBar.Visibility = Visibility.Visible;
+        ShowBanner(SaveLoginBar);
     }
 
     private void BtnSaveLogin_Click(object sender, RoutedEventArgs e)

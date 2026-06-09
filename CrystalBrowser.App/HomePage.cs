@@ -1,13 +1,14 @@
 namespace CrystalBrowser.App;
 
 /// <summary>
-/// The Crystal Browser home / new-tab page. Rendered offline via NavigateToString so it
-/// loads instantly. Its search box posts to Google, and the host app pushes live system
-/// telemetry into it each second via the global <c>crystalStats()</c> hook.
+/// The Crystal Browser home / new-tab page (2.1 AERO). Rendered offline via NavigateToString so
+/// it loads instantly. A bright glass design: soft drifting colour blobs behind frosted cards,
+/// with staggered entrance animations. The host app pushes live system telemetry into it each
+/// second via the global <c>crystalStats()</c> hook.
 /// </summary>
 public static class HomePage
 {
-    public static string Html(string theme = "dark", string engine = "google") => $$"""
+    public static string Html(string theme = "aero", string engine = "google") => $$"""
 <!doctype html>
 <html lang="en">
 <head>
@@ -19,56 +20,88 @@ public static class HomePage
   * { box-sizing:border-box; margin:0; padding:0; }
   html,body { height:100%; }
   body {
-    font-family:'Segoe UI',system-ui,sans-serif; color:#e9e9ff;
-    background:radial-gradient(1200px 700px at 50% -10%, #2a2350 0%, #16142b 55%, #0e0d1c 100%);
+    font-family:'Segoe UI',system-ui,sans-serif; color:#0f1b2d;
+    background:radial-gradient(1100px 700px at 50% -10%, #dfeaff 0%, #eef4ff 45%, #f8fbff 100%);
     min-height:100%; display:flex; flex-direction:column; align-items:center;
-    padding:0 20px; overflow-x:hidden;
+    padding:0 20px; overflow-x:hidden; position:relative;
   }
+
+  /* Ambient aero blobs: soft colour orbs drifting slowly behind the glass. */
+  .blob { position:fixed; border-radius:50%; filter:blur(70px); opacity:.5;
+    pointer-events:none; z-index:-1; }
+  .b1 { width:480px; height:480px; left:-120px; top:-140px;
+    background:radial-gradient(circle, var(--accent2), transparent 70%);
+    animation:drift1 24s ease-in-out infinite alternate; }
+  .b2 { width:420px; height:420px; right:-110px; top:22%;
+    background:radial-gradient(circle, #b7e0ff, transparent 70%);
+    animation:drift2 30s ease-in-out infinite alternate; }
+  .b3 { width:380px; height:380px; left:18%; bottom:-160px;
+    background:radial-gradient(circle, #d7c9ff, transparent 70%);
+    animation:drift3 27s ease-in-out infinite alternate; }
+  @keyframes drift1 { to { transform:translate(70px,50px) scale(1.12); } }
+  @keyframes drift2 { to { transform:translate(-60px,-70px) scale(1.08); } }
+  @keyframes drift3 { to { transform:translate(50px,-50px) scale(1.15); } }
+
+  /* Staggered entrance: everything floats up into place. */
+  @keyframes rise { from { opacity:0; transform:translateY(16px); }
+                    to   { opacity:1; transform:none; } }
+  .clock, .greeting, .logo, form, .sys { animation:rise .55s cubic-bezier(.2,.7,.3,1) both; }
+  .greeting { animation-delay:.07s; }
+  .logo     { animation-delay:.14s; }
+  form      { animation-delay:.21s; }
+  .sys      { animation-delay:.30s; }
+
   .clock { margin-top:9vh; font-size:64px; font-weight:200; letter-spacing:2px; }
-  .greeting { font-size:18px; color:#a9a6cf; margin-top:4px; }
+  .greeting { font-size:18px; color:#5a6b80; margin-top:4px; }
   .logo { margin-top:6vh; font-size:40px; font-weight:800; letter-spacing:-1px; }
   .logo span { background:linear-gradient(90deg,var(--accent),var(--accent2));
-    -webkit-background-clip:text; background-clip:text; color:transparent; }
+    -webkit-background-clip:text; background-clip:text; color:transparent;
+    background-size:200% 100%; animation:shine 6s ease-in-out infinite; }
+  @keyframes shine { 0%,100% { background-position:0% 0; } 50% { background-position:100% 0; } }
+
   form { width:min(640px,92vw); margin-top:22px; position:relative; }
   input {
-    width:100%; padding:18px 56px 18px 26px; font-size:17px; color:#fff;
-    background:rgba(255,255,255,.06); border:1.5px solid rgba(255,255,255,.12);
-    border-radius:32px; outline:none; transition:.2s; backdrop-filter:blur(8px);
+    width:100%; padding:18px 56px 18px 26px; font-size:17px; color:#0f1b2d;
+    background:rgba(255,255,255,.6); border:1.5px solid rgba(15,27,45,.10);
+    border-radius:32px; outline:none; backdrop-filter:blur(18px) saturate(1.3);
+    box-shadow:0 10px 36px rgba(31,60,110,.08);
+    transition:border-color .25s, box-shadow .25s, background .25s, transform .25s;
   }
-  input::placeholder { color:#8b88b4; }
-  input:focus { border-color:var(--accent); background:rgba(124,108,255,.10);
-    box-shadow:0 0 0 4px rgba(124,108,255,.15); }
+  input::placeholder { color:#8295ab; }
+  input:focus { border-color:var(--accent); background:rgba(255,255,255,.82);
+    box-shadow:0 0 0 5px rgba(47,107,255,.12), 0 12px 40px rgba(31,60,110,.12);
+    transform:translateY(-1px); }
   .go { position:absolute; right:8px; top:8px; width:40px; height:40px; border:0;
-    border-radius:50%; background:var(--accent); color:#fff; font-size:17px; cursor:pointer; }
-  .go:hover { background:#6a5aff; }
-  .tiles { display:flex; gap:14px; margin-top:30px; flex-wrap:wrap; justify-content:center; }
-  .tile { width:96px; height:84px; border-radius:16px; background:rgba(255,255,255,.05);
-    border:1px solid rgba(255,255,255,.08); display:flex; flex-direction:column; gap:8px;
-    align-items:center; justify-content:center; text-decoration:none; color:#d9d8f5;
-    font-size:13px; transition:.15s; cursor:pointer; }
-  .tile:hover { background:rgba(124,108,255,.18); transform:translateY(-2px); }
-  .tile img { width:30px; height:30px; border-radius:7px; }
-  .tile .ico { width:30px; height:30px; }
+    border-radius:50%; background:var(--accent); color:#fff; font-size:17px; cursor:pointer;
+    transition:transform .18s, background .18s; }
+  .go:hover { background:#1f56e8; transform:scale(1.08); }
+  .go:active { transform:scale(.94); }
+
   .sys {
     margin-top:auto; margin-bottom:26px; width:min(640px,92vw);
     display:flex; gap:14px; padding-top:30px;
   }
-  .gauge { flex:1; background:rgba(255,255,255,.05); border:1px solid rgba(255,255,255,.08);
-    border-radius:14px; padding:14px 16px; }
-  .gauge .lab { font-size:12px; color:#9a97c4; display:flex; justify-content:space-between; }
-  .gauge .val { font-size:22px; font-weight:600; margin:6px 0 9px; }
-  .bar { height:7px; border-radius:4px; background:rgba(255,255,255,.10); overflow:hidden; }
+  .gauge { flex:1; background:rgba(255,255,255,.55); border:1px solid rgba(15,27,45,.08);
+    border-radius:16px; padding:14px 16px; backdrop-filter:blur(18px) saturate(1.3);
+    box-shadow:0 8px 30px rgba(31,60,110,.06);
+    transition:transform .25s, box-shadow .25s; }
+  .gauge:hover { transform:translateY(-3px); box-shadow:0 14px 40px rgba(31,60,110,.10); }
+  .gauge .lab { font-size:12px; color:#5a6b80; display:flex; justify-content:space-between; }
+  .gauge .val { font-size:22px; font-weight:600; margin:6px 0 9px; color:#0f1b2d; }
+  .bar { height:7px; border-radius:4px; background:rgba(15,27,45,.08); overflow:hidden; }
   .bar > i { display:block; height:100%; width:0%; border-radius:4px;
     background:linear-gradient(90deg,var(--accent),var(--accent2)); transition:width .5s; }
-  .sub { font-size:11px; color:#7e7ba6; margin-top:6px; }
+  .sub { font-size:11px; color:#7c8da1; margin-top:6px; }
 </style>
 {{Theme.PageCss(theme)}}
 </head>
 <body>
+  <div class="blob b1"></div><div class="blob b2"></div><div class="blob b3"></div>
+
   <div class="clock" id="clock">--:--</div>
   <div class="greeting" id="greet">Welcome to Crystal</div>
 
-  <div class="logo">Crystal <span>ULTRA</span></div>
+  <div class="logo">Crystal <span>AERO</span></div>
 
   <form action="{{Config.SearchFormAction(engine)}}" method="get">
     <input name="q" autofocus autocomplete="off" placeholder="Search {{Config.SearchName(engine)}} or type a URL…">
