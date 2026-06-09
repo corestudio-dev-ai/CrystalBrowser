@@ -158,11 +158,13 @@ public partial class MainWindow : Window
     private static extern int DwmSetWindowAttribute(IntPtr hwnd, int attr, ref int value, int size);
 
     private const int DwmwaUseImmersiveDarkMode = 20;
-    private const int DwmwaSystemBackdropType = 38; // Win11 22621+
+    private const int DwmwaWindowCornerPreference = 33; // Win11 — round the real window corners
+    private const int DwmwaSystemBackdropType = 38;     // Win11 22621+
+    private const int CornerRound = 2;                  // DWMWCP_ROUND
     private const int BackdropMica = 2;
 
-    // Apply the Mica backdrop (and dark title frame) once the HWND exists. No-op on older
-    // Windows — the call simply fails and we fall back to the solid chrome backgrounds.
+    // Apply the Mica backdrop + rounded corners (and the matching light/dark title frame) once the
+    // HWND exists. No-op on older Windows — the calls simply fail and we fall back to plain chrome.
     private void Window_SourceInitialized(object? sender, EventArgs e)
     {
         try
@@ -170,10 +172,12 @@ public partial class MainWindow : Window
             var hwnd = new System.Windows.Interop.WindowInteropHelper(this).Handle;
             int dark = IsLight ? 0 : 1;
             DwmSetWindowAttribute(hwnd, DwmwaUseImmersiveDarkMode, ref dark, sizeof(int));
+            int corner = CornerRound; // smooth rounded frame (2.0 ULTRA), no square Windows chrome
+            DwmSetWindowAttribute(hwnd, DwmwaWindowCornerPreference, ref corner, sizeof(int));
             int backdrop = BackdropMica;
             DwmSetWindowAttribute(hwnd, DwmwaSystemBackdropType, ref backdrop, sizeof(int));
         }
-        catch { /* pre-Win11 — keep the solid look */ }
+        catch { /* pre-Win11 — keep the flat look */ }
     }
 
     // Ensure the window never launches larger than the available screen area,
@@ -739,11 +743,6 @@ public partial class MainWindow : Window
         Set("TabTextActive",   t.TabTextActive);
         Set("TabTextInactive", t.TabTextInactive);
         Set("TabActiveBg",     t.TabActiveBg);
-
-        // The animated water layer only makes sense behind Oceanic's translucent glass chrome;
-        // other themes use opaque chrome (or the Mica backdrop), so hide it there.
-        WaterBg.Visibility = string.Equals(theme, "oceanic", StringComparison.OrdinalIgnoreCase)
-            ? Visibility.Visible : Visibility.Collapsed;
     }
 
     private bool IsLight => Theme.IsLight(SettingsStore.Current.Theme);
@@ -1483,9 +1482,9 @@ public partial class MainWindow : Window
         RamBar.Width = 60 * s.RamPercent / 100.0;
         RamText.Text = $"{s.RamPercent:0}%";
 
-        // Feed the home page's live widget. crystalStats only exists on the home page,
-        // so this is a harmless no-op on any other page — no need to gate on IsHome.
-        if (Current?.CoreWebView2 != null)
+        // Feed the home page's live widget. Only the home page has the crystalStats hook, so we
+        // skip the cross-process ExecuteScriptAsync entirely on every other page (perf, 2.0).
+        if (_active?.IsHome == true && Current?.CoreWebView2 != null)
         {
             var json = $"{{cpu:{s.CpuPercent:0.0},cores:{s.Cores},ramPct:{s.RamPercent:0.0}," +
                        $"ramUsed:{s.RamUsedGb:0.0},ramTotal:{s.RamTotalGb:0.0},appMem:{s.AppMemoryMb:0}}}";

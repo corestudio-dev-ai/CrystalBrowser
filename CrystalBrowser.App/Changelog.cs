@@ -16,6 +16,15 @@ public static class Changelog
 {
     public static readonly IReadOnlyList<ChangelogEntry> Entries = new[]
     {
+        new ChangelogEntry("2.0", new[]
+        {
+            "Crystal Browser 2.0 ULTRA — a complete redesign with a brand-new look.",
+            "Bright by default: the new \"Ultra\" light theme is now the default — clean white frosted glass with a vivid blue accent. Light and Dark are still one click away in Settings.",
+            "A fully custom, borderless window: no chunky Windows frame, smooth rounded corners, and redesigned minimize / maximize / close buttons.",
+            "Frosted glass everywhere: the toolbar, tab rail and panels are translucent so your desktop gently shows through.",
+            "A redesigned Settings page that matches the new Ultra look.",
+            "Performance: retired the old animated background and trimmed needless work while you browse, so Crystal feels lighter and quicker.",
+        }),
         new ChangelogEntry("1.8.2", new[]
         {
             "The update banner is now Oceanic blue to match the rest of the browser (no more leftover purple).",

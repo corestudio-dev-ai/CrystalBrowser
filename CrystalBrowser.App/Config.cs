@@ -20,7 +20,7 @@ public static class Config
     public static string SearchName(string engine) => engine == "duckduckgo" ? "DuckDuckGo" : "Google";
 
     /// <summary>This build's version. Bump it each release (and tag the GitHub release to match).</summary>
-    public const string Version = "1.8.2";
+    public const string Version = "2.0";
 
     /// <summary>
     /// Emergency-patch level *within* the current <see cref="Version"/>. Starts at 0 for a fresh

@@ -15,7 +15,7 @@ public static class HomePage
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>New Tab — Crystal</title>
 <style>
-  :root { --accent:#7c6cff; --accent2:#b39bff; }
+  :root { --accent:#2F6BFF; --accent2:#8FB6FF; }
   * { box-sizing:border-box; margin:0; padding:0; }
   html,body { height:100%; }
   body {
@@ -68,7 +68,7 @@ public static class HomePage
   <div class="clock" id="clock">--:--</div>
   <div class="greeting" id="greet">Welcome to Crystal</div>
 
-  <div class="logo">Crystal<span>Browser</span></div>
+  <div class="logo">Crystal <span>ULTRA</span></div>
 
   <form action="{{Config.SearchFormAction(engine)}}" method="get">
     <input name="q" autofocus autocomplete="off" placeholder="Search {{Config.SearchName(engine)}} or type a URL…">
